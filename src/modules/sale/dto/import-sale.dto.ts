@@ -10,7 +10,7 @@ export interface ImportSaleDto {
   paymentMethod: string;
   createdAt: Date;
   refunded: number;
-  status: 'created' | 'charged' | 'refunded';
+  status: "created" | "charged" | "refunded";
   total: number;
   updatedAt: Date;
   items: ImportSaleItemDto[];

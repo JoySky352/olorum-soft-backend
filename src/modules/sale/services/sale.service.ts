@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Sale } from '../entities/sale.entity';
-import { GetSalesDto } from '../dto/get-sales.dto';
-import { PaginatedResponseDto } from 'src/core/dto/paginated-response.dto';
-import { TotalSalesDto } from '../dto/total-sales.dto';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Sale } from "../entities/sale.entity";
+import { GetSalesDto } from "../dto/get-sales.dto";
+import { PaginatedResponseDto } from "src/core/dto/paginated-response.dto";
+import { TotalSalesDto } from "../dto/total-sales.dto";
 
 @Injectable()
 export class SaleService {
@@ -17,20 +17,20 @@ export class SaleService {
     const { limit = 10, offset = 0, startDate, endDate, status } = dto;
 
     const query = this.saleRepository
-      .createQueryBuilder('sale')
-      .leftJoinAndSelect('sale.items', 'item')
-      .leftJoinAndSelect('item.product', 'product')
+      .createQueryBuilder("sale")
+      .leftJoinAndSelect("sale.items", "item")
+      .leftJoinAndSelect("item.product", "product")
       .skip(offset)
       .take(limit);
 
-    if (status) query.andWhere('sale.status = :status', { status });
+    if (status) query.andWhere("sale.status = :status", { status });
 
     if (startDate)
-      query.andWhere('sale.created_at >= :startDate', {
+      query.andWhere("sale.created_at >= :startDate", {
         startDate: new Date(startDate).toISOString().slice(0, 10),
       });
 
-    if (endDate) query.andWhere('sale.created_at <= :endDate', { endDate });
+    if (endDate) query.andWhere("sale.created_at <= :endDate", { endDate });
 
     const [data, total] = await query.getManyAndCount();
 
@@ -41,7 +41,7 @@ export class SaleService {
     const { startDate, endDate, status } = dto;
 
     if (!startDate || !endDate) {
-      throw new Error('Debe proporcionar ambas fechas: startDate y endDate');
+      throw new Error("Debe proporcionar ambas fechas: startDate y endDate");
     }
 
     const start = new Date(startDate);
@@ -73,16 +73,16 @@ export class SaleService {
     );
 
     const query = this.saleRepository
-      .createQueryBuilder('sale')
-      .leftJoinAndSelect('sale.items', 'item')
-      .leftJoinAndSelect('item.product', 'product')
-      .where('sale.created_at BETWEEN :start AND :end', {
+      .createQueryBuilder("sale")
+      .leftJoinAndSelect("sale.items", "item")
+      .leftJoinAndSelect("item.product", "product")
+      .where("sale.created_at BETWEEN :start AND :end", {
         start: startOfDay,
         end: sameDay ? endOfDay : end,
       });
 
     if (status) {
-      query.andWhere('sale.status = :status', { status });
+      query.andWhere("sale.status = :status", { status });
     }
 
     const sales = await query.getMany();

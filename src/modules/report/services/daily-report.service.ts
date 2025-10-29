@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import * as ExcelJS from 'exceljs';
-import { SaleService } from 'src/modules/sale/services/sale.service';
+import { Injectable } from "@nestjs/common";
+import * as ExcelJS from "exceljs";
+import { SaleService } from "src/modules/sale/services/sale.service";
 
 @Injectable()
 export class DailyReportService {
@@ -9,24 +9,24 @@ export class DailyReportService {
   async getReport(date: Date): Promise<Buffer> {
     const { data } = await this.saleService.findAll({
       startDate: date,
-      endDate: new Date(date.toISOString().slice(0, 10) + 'T23:59:59.999Z'),
+      endDate: new Date(date.toISOString().slice(0, 10) + "T23:59:59.999Z"),
       limit: 100000,
     }); //Arreglo con las ventas
     const sales = data;
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Reporte Diario');
+    const worksheet = workbook.addWorksheet("Reporte Diario");
 
     const borderStyle: Partial<ExcelJS.Borders> = {
-      top: { style: 'thin' as const },
-      left: { style: 'thin' as const },
-      bottom: { style: 'thin' as const },
-      right: { style: 'thin' as const },
+      top: { style: "thin" as const },
+      left: { style: "thin" as const },
+      bottom: { style: "thin" as const },
+      right: { style: "thin" as const },
     };
 
-    const alignRight = { horizontal: 'right' as const };
-    const alignLeft = { horizontal: 'left' as const };
-    const alignCenter = { horizontal: 'center' as const };
+    const alignRight = { horizontal: "right" as const };
+    const alignLeft = { horizontal: "left" as const };
+    const alignCenter = { horizontal: "center" as const };
 
     const proveedorMap = new Map<
       string,
@@ -54,7 +54,7 @@ export class DailyReportService {
     for (const sale of sales) {
       for (const item of sale.items) {
         const producto = item.product;
-        const investor = producto.investor || 'olorun';
+        const investor = producto.investor || "olorun";
         const id = producto.id;
 
         if (!proveedorMap.has(investor)) {
@@ -94,11 +94,11 @@ export class DailyReportService {
 
         proveedorData.totalVentaProveedor += item.unitPrice * item.quantity;
         proveedorData.totalOlorun +=
-          sale.paymentMethod === 'Free'
+          sale.paymentMethod === "Free"
             ? gananciaIfFree * item.quantity
             : item.unitPrice * item.quantity;
         proveedorData.gananciaTotalOlorun +=
-          sale.paymentMethod === 'Free'
+          sale.paymentMethod === "Free"
             ? gananciaIfFree * item.quantity
             : gananciaTotalProd;
         proveedorData.gananciaTotal += gananciaTotalProd;
@@ -132,23 +132,23 @@ export class DailyReportService {
     let gananciaGlobal = 0;
 
     for (const [proveedor, data] of proveedorMap.entries()) {
-      const isOlorun = proveedor.toLowerCase() === 'olorun';
+      const isOlorun = proveedor.toLowerCase() === "olorun";
 
       worksheet.getCell(`A${currentRow}`).value = proveedor;
       worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 10 };
       worksheet.getCell(`A${currentRow}`).alignment = alignLeft;
       currentRow += 1;
 
-      const headers = ['Producto', 'Stock', 'Cantidad', 'Total Venta'];
-      if (!isOlorun) headers.push('40% + Costo', '60% Ganancia');
+      const headers = ["Producto", "Stock", "Cantidad", "Total Venta"];
+      if (!isOlorun) headers.push("40% + Costo", "60% Ganancia");
 
       worksheet.addRow(headers);
       const headerRow = worksheet.getRow(currentRow);
       headerRow.font = { bold: true };
       headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFD9D9D9' },
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFD9D9D9" },
       };
       headerRow.eachCell((cell) => {
         cell.border = borderStyle;
@@ -199,17 +199,17 @@ export class DailyReportService {
         currentRow++;
       };
 
-      if (!isOlorun) addResumen('TOTAL DEL DÍA', data.totalVentaProveedor);
-      else addResumen('TOTAL DEL DÍA', data.totalOlorun);
+      if (!isOlorun) addResumen("TOTAL DEL DÍA", data.totalVentaProveedor);
+      else addResumen("TOTAL DEL DÍA", data.totalOlorun);
       totalGlobal += data.totalOlorun;
 
-      if (!isOlorun) addResumen('GANANCIA TOTAL', data.gananciaTotal);
-      else addResumen('GANANCIA TOTAL', data.gananciaTotalOlorun);
+      if (!isOlorun) addResumen("GANANCIA TOTAL", data.gananciaTotal);
+      else addResumen("GANANCIA TOTAL", data.gananciaTotalOlorun);
       gananciaGlobal += data.gananciaTotalOlorun;
 
       if (!isOlorun) {
-        addResumen('40% + COSTO', data.total40MasCosto);
-        addResumen('60% GANANCIA', data.total60);
+        addResumen("40% + COSTO", data.total40MasCosto);
+        addResumen("60% GANANCIA", data.total60);
       }
 
       worksheet.addRow([]);
@@ -217,7 +217,7 @@ export class DailyReportService {
     }
 
     // Resumen global al final del reporte
-    worksheet.getCell(`A${currentRow}`).value = 'RESUMEN GENERAL';
+    worksheet.getCell(`A${currentRow}`).value = "RESUMEN GENERAL";
     worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 10 };
     worksheet.getCell(`A${currentRow}`).alignment = alignLeft;
     currentRow++;
@@ -233,14 +233,14 @@ export class DailyReportService {
       currentRow++;
     };
 
-    addResumenFinal('TOTAL GLOBAL DEL DÍA', totalGlobal);
-    addResumenFinal('GANANCIA GLOBAL TOTAL', gananciaGlobal);
+    addResumenFinal("TOTAL GLOBAL DEL DÍA", totalGlobal);
+    addResumenFinal("GANANCIA GLOBAL TOTAL", gananciaGlobal);
 
     worksheet.columns.forEach((col) => {
       let maxLength = 10;
       col.eachCell?.({ includeEmpty: true }, (cell) => {
         // eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
-        const val = cell.value ? `${cell.value}` : '';
+        const val = cell.value ? `${cell.value}` : "";
         if (val.length > maxLength) maxLength = val.length;
       });
       col.width = maxLength + 4;

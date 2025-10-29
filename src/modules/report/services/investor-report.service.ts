@@ -1,6 +1,6 @@
-import * as ExcelJS from 'exceljs';
-import { Injectable } from '@nestjs/common';
-import { SaleService } from 'src/modules/sale/services/sale.service';
+import * as ExcelJS from "exceljs";
+import { Injectable } from "@nestjs/common";
+import { SaleService } from "src/modules/sale/services/sale.service";
 
 @Injectable()
 export class InvestorReportService {
@@ -58,17 +58,17 @@ export class InvestorReportService {
 
     // -------------------- Generar Excel con resumen ---------------------
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Resumen Proveedor');
+    const worksheet = workbook.addWorksheet("Resumen Proveedor");
 
     const borderStyle: Partial<ExcelJS.Borders> = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' },
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" },
     };
 
-    const alignRight = { horizontal: 'right' as const };
-    const alignLeft = { horizontal: 'left' as const };
+    const alignRight = { horizontal: "right" as const };
+    const alignLeft = { horizontal: "left" as const };
 
     let currentRow = 1;
 
@@ -82,18 +82,18 @@ export class InvestorReportService {
     worksheet.getCell(`A${currentRow}`).alignment = alignLeft;
     currentRow += 2;
 
-    worksheet.getCell(`A${currentRow}`).value = 'Proveedor:';
+    worksheet.getCell(`A${currentRow}`).value = "Proveedor:";
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     worksheet.getCell(`B${currentRow}`).value = investor;
     currentRow++;
 
     const resumenes = [
-      ['Total de ventas:', totalSales],
-      ['Monto total:', montoTotal],
-      ['Costo total:', costoTotal],
-      ['Ganancia total:', gananciaTotal],
-      ['40% + Costo:', total40MasCosto],
-      ['60% Ganancia:', total60Ganancia],
+      ["Total de ventas:", totalSales],
+      ["Monto total:", montoTotal],
+      ["Costo total:", costoTotal],
+      ["Ganancia total:", gananciaTotal],
+      ["40% + Costo:", total40MasCosto],
+      ["60% Ganancia:", total60Ganancia],
     ];
 
     for (const [label, value] of resumenes) {
@@ -113,7 +113,7 @@ export class InvestorReportService {
       let maxLength = 12;
       col.eachCell?.({ includeEmpty: true }, (cell) => {
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        const val = cell.value ? String(cell.value) : '';
+        const val = cell.value ? String(cell.value) : "";
         if (val.length > maxLength) maxLength = val.length;
       });
       col.width = maxLength + 2;

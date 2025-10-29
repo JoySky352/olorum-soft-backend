@@ -2,11 +2,11 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { EntityManager } from 'typeorm';
-import { Sale } from '../entities/sale.entity';
-import { RefundSaleDto } from '../dto/refund-sale.dto';
-import { SaleItem } from '../entities/sale-item.entity';
+} from "@nestjs/common";
+import { EntityManager } from "typeorm";
+import { Sale } from "../entities/sale.entity";
+import { RefundSaleDto } from "../dto/refund-sale.dto";
+import { SaleItem } from "../entities/sale-item.entity";
 
 @Injectable()
 export class RefundSaleService {
@@ -17,7 +17,7 @@ export class RefundSaleService {
     });
 
     if (!sale) throw new NotFoundException(`Venta con ID: ${id} no encontrada`);
-    if (!['charged', 'refunded'].includes(sale.status))
+    if (!["charged", "refunded"].includes(sale.status))
       throw new BadRequestException(
         `Venta con ID: ${id} y Estado: ${sale.status} no se puede devolver`,
       );
@@ -50,7 +50,7 @@ export class RefundSaleService {
     );
     sale.total = total;
     sale.refunded = refunded;
-    sale.status = 'refunded';
+    sale.status = "refunded";
     sale.updatedAt = new Date();
 
     await manager.save(sale);

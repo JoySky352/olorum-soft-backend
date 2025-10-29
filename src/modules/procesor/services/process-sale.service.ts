@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { ProductService } from 'src/modules/inventory/services/product.service';
-import { CreateSaleDto } from 'src/modules/sale/dto/create-sale.dto';
-import { CreateSaleService } from 'src/modules/sale/services/create-sale.service';
-import { UpdateSaleService } from 'src/modules/sale/services/update-sale.service';
-import { EntityManager } from 'typeorm';
+import { Injectable } from "@nestjs/common";
+import { ProductService } from "src/modules/inventory/services/product.service";
+import { CreateSaleDto } from "src/modules/sale/dto/create-sale.dto";
+import { CreateSaleService } from "src/modules/sale/services/create-sale.service";
+import { UpdateSaleService } from "src/modules/sale/services/update-sale.service";
+import { EntityManager } from "typeorm";
 
 @Injectable()
 export class ProcessSaleService {
