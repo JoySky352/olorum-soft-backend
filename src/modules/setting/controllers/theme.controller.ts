@@ -14,7 +14,6 @@ import { CreateThemeDto } from "../dto/create-theme.dto";
 import { UpdateThemeDto } from "../dto/update-theme.dto";
 import { ThemeService } from "../services/theme.service";
 
-// controllers/theme.controller.ts
 @ApiTags("Configuración")
 @Controller("settings/theme")
 export class ThemeController {

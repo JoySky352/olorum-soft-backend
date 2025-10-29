@@ -5,7 +5,6 @@ import { CreateThemeDto } from "../dto/create-theme.dto";
 import { UpdateThemeDto } from "../dto/update-theme.dto";
 import { Theme } from "../entities/theme.entity";
 
-// services/theme.service.ts
 @Injectable()
 export class ThemeService {
   constructor(
