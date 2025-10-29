@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Theme } from '../entities/theme.entity';
-import { Repository } from 'typeorm';
-import { CreateThemeDto } from '../dto/create-theme.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Theme } from "../entities/theme.entity";
+import { Repository } from "typeorm";
+import { CreateThemeDto } from "../dto/create-theme.dto";
 
 @Injectable()
 export class ThemeService {

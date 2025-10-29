@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsDecimal, IsNumber } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import { IsDecimal, IsNumber } from "class-validator";
 
 export class RefundSaleItemDto {
   @ApiProperty()
@@ -11,6 +11,6 @@ export class RefundSaleItemDto {
   productId: number;
 
   @ApiProperty()
-  @IsDecimal({ decimal_digits: '2' })
+  @IsDecimal({ decimal_digits: "2" })
   quantityToRefund: number;
 }
