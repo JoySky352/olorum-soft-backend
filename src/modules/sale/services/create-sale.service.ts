@@ -31,6 +31,7 @@ export class CreateSaleService {
     const sale = manager.create(Sale, {
       paymentMethod: dto.paymentMethod,
       total,
+      // createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
       createdAt: new Date(),
       refunded: 0,
       status: "created",

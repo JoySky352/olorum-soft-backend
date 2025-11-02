@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-base-to-string */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from "@nestjs/common";
 import * as ExcelJS from "exceljs";
 import { SaleService } from "src/modules/sale/services/sale.service";
@@ -11,45 +17,25 @@ export class DailyReportService {
       startDate: date,
       endDate: new Date(date.toISOString().slice(0, 10) + "T23:59:59.999Z"),
       limit: 100000,
-    }); //Arreglo con las ventas
+    });
+
     const sales = data;
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Reporte Diario");
 
     const borderStyle: Partial<ExcelJS.Borders> = {
-      top: { style: "thin" as const },
-      left: { style: "thin" as const },
-      bottom: { style: "thin" as const },
-      right: { style: "thin" as const },
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" },
     };
 
     const alignRight = { horizontal: "right" as const };
     const alignLeft = { horizontal: "left" as const };
     const alignCenter = { horizontal: "center" as const };
 
-    const proveedorMap = new Map<
-      string,
-      {
-        productos: Map<
-          number,
-          {
-            nombre: string;
-            cantidad: number;
-            totalVenta: number;
-            precioVenta: number;
-            stock: number;
-            precioCosto: number;
-          }
-        >;
-        totalVentaProveedor: number;
-        totalOlorun: number;
-        gananciaTotal: number;
-        gananciaTotalOlorun: number;
-        total40MasCosto: number;
-        total60: number;
-      }
-    >();
+    const proveedorMap = new Map();
 
     for (const sale of sales) {
       for (const item of sale.items) {
@@ -84,41 +70,38 @@ export class DailyReportService {
 
         const prodData = proveedorData.productos.get(id)!;
         prodData.cantidad += item.quantity;
-
         prodData.totalVenta += item.unitPrice * item.quantity;
-        const gananciaIfFree = !producto.investor
-          ? -producto.unitCost
-          : -producto.unitPrice;
+
         const gananciaPorUnidad = producto.unitPrice - producto.unitCost;
         const gananciaTotalProd = gananciaPorUnidad * item.quantity;
+        const totalProducto = item.unitPrice * item.quantity;
 
-        proveedorData.totalVentaProveedor += item.unitPrice * item.quantity;
-        proveedorData.totalOlorun +=
-          sale.paymentMethod === "Free"
-            ? gananciaIfFree * item.quantity
-            : item.unitPrice * item.quantity;
-        proveedorData.gananciaTotalOlorun +=
-          sale.paymentMethod === "Free"
-            ? gananciaIfFree * item.quantity
-            : gananciaTotalProd;
+        proveedorData.totalVentaProveedor += totalProducto;
         proveedorData.gananciaTotal += gananciaTotalProd;
+
+        if (!producto.investor) {
+          proveedorData.totalOlorun +=
+            sale.paymentMethod === "Free"
+              ? -producto.unitCost * item.quantity
+              : 0;
+          proveedorData.gananciaTotalOlorun +=
+            sale.paymentMethod === "Free"
+              ? -producto.unitCost * item.quantity
+              : 0;
+        } else {
+          proveedorData.totalOlorun += totalProducto;
+          proveedorData.gananciaTotalOlorun += gananciaTotalProd;
+        }
 
         proveedorData.total40MasCosto +=
           gananciaPorUnidad * item.quantity * 0.4 +
-          producto.unitPrice * item.quantity;
+          producto.unitCost * item.quantity;
 
         proveedorData.total60 += gananciaPorUnidad * item.quantity * 0.6;
-        if (item.product.investor) {
-          proveedorData.totalOlorun += proveedorData.total60;
-          proveedorData.gananciaTotalOlorun += proveedorData.total60;
-        }
       }
     }
 
     let currentRow = 1;
-
-    // TODO: hacer bien esto
-    // const fechaStr = formatDate(fecha, "d 'de' MMMM 'de' yyyy", { locale: es });
     const fechaStr = date.toISOString();
     const titulo = `REPORTE DE VENTAS - ${fechaStr.toUpperCase()}`;
     worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
@@ -216,7 +199,6 @@ export class DailyReportService {
       currentRow++;
     }
 
-    // Resumen global al final del reporte
     worksheet.getCell(`A${currentRow}`).value = "RESUMEN GENERAL";
     worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 10 };
     worksheet.getCell(`A${currentRow}`).alignment = alignLeft;
@@ -239,7 +221,6 @@ export class DailyReportService {
     worksheet.columns.forEach((col) => {
       let maxLength = 10;
       col.eachCell?.({ includeEmpty: true }, (cell) => {
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
         const val = cell.value ? `${cell.value}` : "";
         if (val.length > maxLength) maxLength = val.length;
       });
