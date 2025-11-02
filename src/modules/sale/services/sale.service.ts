@@ -27,11 +27,13 @@ export class SaleService {
 
     if (startDate)
       query.andWhere("sale.created_at >= :startDate", {
-        startDate: new Date(startDate).toISOString().slice(0, 10),
+        startDate: new Date(startDate).toISOString(),
       });
 
-    if (endDate) query.andWhere("sale.created_at <= :endDate", { endDate });
-
+    if (endDate)
+      query.andWhere("sale.created_at <= :endDate", {
+        endDate: new Date(endDate).toISOString(),
+      });
     const [data, total] = await query.getManyAndCount();
 
     return new PaginatedResponseDto(data, total, limit, offset);
@@ -52,24 +54,53 @@ export class SaleService {
       start.getMonth() === end.getMonth() &&
       start.getDate() === end.getDate();
 
-    const startOfDay = new Date(
-      start.getFullYear(),
-      start.getMonth(),
-      start.getDate(),
-      0,
-      0,
-      0,
-      0,
+    // const startOfDay = new Date(
+    //   start.getFullYear(),
+    //   start.getMonth(),
+    //   start.getDate(),
+    //   0,
+    //   0,
+    //   0,
+    //   0,
+    // );
+
+    // const endOfDay = new Date(
+    //   end.getFullYear(),
+    //   end.getMonth(),
+    //   end.getDate(),
+    //   23,
+    //   59,
+    //   59,
+    //   999,
+    // );
+
+    const toUtc = (localDate: Date) => {
+      const offsetMs = localDate.getTimezoneOffset() * 60 * 1000;
+      return new Date(localDate.getTime() - offsetMs);
+    };
+
+    const startOfDay = toUtc(
+      new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate(),
+        0,
+        0,
+        0,
+        0,
+      ),
     );
 
-    const endOfDay = new Date(
-      end.getFullYear(),
-      end.getMonth(),
-      end.getDate(),
-      23,
-      59,
-      59,
-      999,
+    const endOfDay = toUtc(
+      new Date(
+        end.getFullYear(),
+        end.getMonth(),
+        end.getDate(),
+        23,
+        59,
+        59,
+        999,
+      ),
     );
 
     const query = this.saleRepository

@@ -13,9 +13,15 @@ export class DailyReportService {
   constructor(private readonly saleService: SaleService) {}
 
   async getReport(date: Date): Promise<Buffer> {
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
     const { data } = await this.saleService.findAll({
-      startDate: date,
-      endDate: new Date(date.toISOString().slice(0, 10) + "T23:59:59.999Z"),
+      startDate,
+      endDate,
       limit: 100000,
     });
 
