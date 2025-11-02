@@ -2,14 +2,14 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Product } from '../entities/product.entity';
-import { EntityManager, Repository } from 'typeorm';
-import { CreateProductDto } from '../dto/create-product.dto';
-import { GetProductsDto } from '../dto/get-products.dto';
-import { PaginatedResponseDto } from 'src/core/dto/paginated-response.dto';
-import { UpdateProductDto } from '../dto/update-product.dto';
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Product } from "../entities/product.entity";
+import { EntityManager, Repository } from "typeorm";
+import { CreateProductDto } from "../dto/create-product.dto";
+import { GetProductsDto } from "../dto/get-products.dto";
+import { PaginatedResponseDto } from "src/core/dto/paginated-response.dto";
+import { UpdateProductDto } from "../dto/update-product.dto";
 
 export interface IReport {
   totalCost: number;
@@ -42,17 +42,17 @@ export class ProductService {
     const { limit = 10, offset = 0, name, category, investor, skipEmpty } = dto;
 
     const query = this.productRepository
-      .createQueryBuilder('product')
+      .createQueryBuilder("product")
       .skip(offset)
       .take(limit);
 
-    if (name) query.andWhere('product.name LIKE :name', { name: `%${name}%` });
+    if (name) query.andWhere("product.name LIKE :name", { name: `%${name}%` });
 
-    if (category) query.andWhere('product.category = :category', { category });
+    if (category) query.andWhere("product.category = :category", { category });
 
-    if (investor) query.andWhere('product.investor = :investor', { investor });
+    if (investor) query.andWhere("product.investor = :investor", { investor });
 
-    if (skipEmpty) query.andWhere('product.stock > 0');
+    if (skipEmpty) query.andWhere("product.stock > 0");
 
     const [data, total] = await query.getManyAndCount();
 
@@ -61,8 +61,8 @@ export class ProductService {
 
   async getIndexByPicture(pictures: string[]): Promise<PictureIndex> {
     const query = await this.productRepository
-      .createQueryBuilder('product')
-      .where('product.picture IN (:...pictures)', { pictures })
+      .createQueryBuilder("product")
+      .where("product.picture IN (:...pictures)", { pictures })
       .getMany();
 
     const index: PictureIndex = query.reduce((prev, curr) => {

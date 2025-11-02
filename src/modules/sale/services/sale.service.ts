@@ -39,6 +39,30 @@ export class SaleService {
     return new PaginatedResponseDto(data, total, limit, offset);
   }
 
+  async findAll2(dto: GetSalesDto): Promise<PaginatedResponseDto<Sale>> {
+    const { limit = 10, offset = 0, startDate, endDate, status } = dto;
+
+    const query = this.saleRepository
+      .createQueryBuilder("sale")
+      .leftJoinAndSelect("sale.items", "item")
+      .leftJoinAndSelect("item.product", "product")
+      .skip(offset)
+      .take(limit);
+
+    if (status) query.andWhere("sale.status = :status", { status });
+
+    if (startDate)
+      query.andWhere("sale.created_at >= :startDate", {
+        startDate: new Date(startDate).toISOString().slice(0, 10),
+      });
+
+    if (endDate) query.andWhere("sale.created_at <= :endDate", { endDate });
+
+    const [data, total] = await query.getManyAndCount();
+
+    return new PaginatedResponseDto(data, total, limit, offset);
+  }
+
   async getResumenVentasPorFecha(dto: GetSalesDto): Promise<TotalSalesDto> {
     const { startDate, endDate, status } = dto;
 

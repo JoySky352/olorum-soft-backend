@@ -27,7 +27,7 @@ export class SaleController {
     @Query() dto: GetSalesDto,
   ): Promise<PaginatedResponseDto<Sale>> {
     try {
-      return await this.saleService.findAll(dto);
+      return await this.saleService.findAll2(dto);
     } catch (error) {
       throw new InternalServerErrorException(
         (error as Error).message || "Error al obtener ventas",
