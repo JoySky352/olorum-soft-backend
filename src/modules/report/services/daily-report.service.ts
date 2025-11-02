@@ -46,7 +46,7 @@ export class DailyReportService {
     for (const sale of sales) {
       for (const item of sale.items) {
         const producto = item.product;
-        const investor = producto.investor || "olorun";
+        const investor = producto.investor || process.env.NEGOCIO;
         const id = producto.id;
 
         if (!proveedorMap.has(investor)) {
@@ -121,7 +121,7 @@ export class DailyReportService {
     let gananciaGlobal = 0;
 
     for (const [proveedor, data] of proveedorMap.entries()) {
-      const isOlorun = proveedor.toLowerCase() === "olorun";
+      const isOlorun = proveedor.toLowerCase() === process.env.NEGOCIO;
 
       worksheet.getCell(`A${currentRow}`).value = proveedor;
       worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 10 };
