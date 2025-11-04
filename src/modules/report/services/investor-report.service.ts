@@ -12,7 +12,6 @@ export class InvestorReportService {
     startDate: Date,
     endDate: Date,
   ): Promise<Buffer> {
-    // Convertir rango de fechas UTC a hora local de La Habana (UTC-5)
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -23,17 +22,17 @@ export class InvestorReportService {
       0 + 5,
       0,
       0,
-      0, // Ajuste +5 horas
+      0,
     );
 
     const endOfDay = new Date(
       end.getUTCFullYear(),
       end.getUTCMonth(),
       end.getUTCDate(),
-      23 + 5,
+      23 - 5,
       59,
       59,
-      999, // Ajuste +5 horas
+      999,
     );
 
     const { data } = await this.saleService.findAll({
