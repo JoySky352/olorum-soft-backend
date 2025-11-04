@@ -12,20 +12,6 @@ import { SaleService } from "src/modules/sale/services/sale.service";
 export class DailyReportService {
   constructor(private readonly saleService: SaleService) {}
 
-  // async getReport(date: Date): Promise<Buffer> {
-  //   const startDate = new Date(date);
-  //   startDate.setHours(0, 0, 0, 0);
-
-  //   const endDate = new Date(date);
-  //   endDate.setHours(23, 59, 59, 999);
-
-  //   const { data } = await this.saleService.findAll({
-  //     startDate,
-  //     endDate,
-  //     limit: 100000,
-  //   });
-
-  //   const sales = data;
   async getReport(date: Date): Promise<Buffer> {
     const sales = await this.saleService.findByDay(date);
 

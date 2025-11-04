@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 import * as ExcelJS from "exceljs";
 import { Injectable } from "@nestjs/common";
 import { SaleService } from "src/modules/sale/services/sale.service";
@@ -11,11 +12,36 @@ export class InvestorReportService {
     startDate: Date,
     endDate: Date,
   ): Promise<Buffer> {
+    // Convertir rango de fechas UTC a hora local de La Habana (UTC-5)
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const startOfDay = new Date(
+      start.getUTCFullYear(),
+      start.getUTCMonth(),
+      start.getUTCDate(),
+      0 + 5,
+      0,
+      0,
+      0, // Ajuste +5 horas
+    );
+
+    const endOfDay = new Date(
+      end.getUTCFullYear(),
+      end.getUTCMonth(),
+      end.getUTCDate(),
+      23 + 5,
+      59,
+      59,
+      999, // Ajuste +5 horas
+    );
+
     const { data } = await this.saleService.findAll({
-      startDate,
-      endDate,
+      startDate: startOfDay,
+      endDate: endOfDay,
       limit: 100000,
-    }); //Arreglo con las ventas
+    });
+
     const sales = data;
 
     let montoTotal = 0;
@@ -72,8 +98,8 @@ export class InvestorReportService {
 
     let currentRow = 1;
 
-    const fechaInicioStr = startDate.toISOString();
-    const fechaFinStr = endDate.toISOString();
+    const fechaInicioStr = startOfDay.toISOString();
+    const fechaFinStr = endOfDay.toISOString();
 
     worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value =
@@ -112,7 +138,6 @@ export class InvestorReportService {
     worksheet.columns.forEach((col) => {
       let maxLength = 12;
       col.eachCell?.({ includeEmpty: true }, (cell) => {
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         const val = cell.value ? String(cell.value) : "";
         if (val.length > maxLength) maxLength = val.length;
       });
@@ -120,9 +145,6 @@ export class InvestorReportService {
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-
-    // -------------------------------------------------------------------
-
     return Buffer.from(buffer);
   }
 }
