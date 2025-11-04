@@ -95,6 +95,49 @@ export class SaleService {
     return new PaginatedResponseDto(data, total, limit, offset);
   }
 
+  async findByDay(startDate: Date, status?: string): Promise<Sale[]> {
+    const utcDate = new Date(startDate);
+
+    const startOfDay = new Date(
+      utcDate.getUTCFullYear(),
+      utcDate.getUTCMonth(),
+      utcDate.getUTCDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+
+    const endOfDay = new Date(
+      utcDate.getUTCFullYear(),
+      utcDate.getUTCMonth(),
+      utcDate.getUTCDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    startOfDay.setHours(startOfDay.getHours() + 5);
+    endOfDay.setHours(endOfDay.getHours() + 5);
+
+    const query = this.saleRepository
+      .createQueryBuilder("sale")
+      .leftJoinAndSelect("sale.items", "item")
+      .leftJoinAndSelect("item.product", "product")
+      .where("sale.created_at BETWEEN :start AND :end", {
+        start: startOfDay,
+        end: endOfDay,
+      });
+
+    if (status) {
+      query.andWhere("sale.status = :status", { status });
+    }
+
+    const sales = await query.getMany();
+    return sales;
+  }
+
   async getResumenVentasPorFecha(dto: GetSalesDto): Promise<TotalSalesDto> {
     const { startDate, endDate, status } = dto;
     console.log("getResumenVentasPorFecha", startDate, endDate);
