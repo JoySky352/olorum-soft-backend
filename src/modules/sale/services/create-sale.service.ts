@@ -72,9 +72,7 @@ export class CreateSaleService {
     //   status: 'created',
     // });
 
-    console.log("salvando ventas");
     const sales = await this.saleRepository.save(dtos);
-    console.log("procesando", sales.length, "ventas");
     for (let index = 0; index < sales.length; index++) {
       const sale = sales[index];
       const dto = dtos[index];

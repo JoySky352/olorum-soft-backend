@@ -15,7 +15,6 @@ export class SaleService {
 
   async findAll(dto: GetSalesDto): Promise<PaginatedResponseDto<Sale>> {
     const { limit = 10, offset = 0, startDate, endDate, status } = dto;
-    console.log("findAll", startDate, endDate);
 
     const query = this.saleRepository
       .createQueryBuilder("sale")
@@ -98,6 +97,7 @@ export class SaleService {
   async findByDay(startDate: Date, status?: string): Promise<Sale[]> {
     const utcDate = new Date(startDate);
 
+    // Construimos inicio y fin del día con base en la fecha UTC
     const startOfDay = new Date(
       utcDate.getUTCFullYear(),
       utcDate.getUTCMonth(),
@@ -118,8 +118,8 @@ export class SaleService {
       999,
     );
 
-    startOfDay.setHours(startOfDay.getHours() + 5);
-    endOfDay.setHours(endOfDay.getHours() + 5);
+    // startOfDay.setHours(startOfDay.getHours() - 5);
+    endOfDay.setHours(endOfDay.getHours() - 5);
 
     const query = this.saleRepository
       .createQueryBuilder("sale")
@@ -140,7 +140,6 @@ export class SaleService {
 
   async getResumenVentasPorFecha(dto: GetSalesDto): Promise<TotalSalesDto> {
     const { startDate, endDate, status } = dto;
-    console.log("getResumenVentasPorFecha", startDate, endDate);
     if (!startDate || !endDate) {
       throw new Error("Debe proporcionar ambas fechas: startDate y endDate");
     }
