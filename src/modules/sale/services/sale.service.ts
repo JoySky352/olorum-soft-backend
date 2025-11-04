@@ -15,6 +15,7 @@ export class SaleService {
 
   async findAll(dto: GetSalesDto): Promise<PaginatedResponseDto<Sale>> {
     const { limit = 10, offset = 0, startDate, endDate, status } = dto;
+    console.log("findAll", startDate, endDate);
 
     const query = this.saleRepository
       .createQueryBuilder("sale")
@@ -23,49 +24,80 @@ export class SaleService {
       .skip(offset)
       .take(limit);
 
-    if (status) query.andWhere("sale.status = :status", { status });
+    if (status) {
+      query.andWhere("sale.status = :status", { status });
+    }
 
-    if (startDate)
-      query.andWhere("sale.created_at >= :startDate", {
-        startDate: new Date(startDate).toISOString(),
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      const sameDay =
+        start.getFullYear() === end.getFullYear() &&
+        start.getMonth() === end.getMonth() &&
+        start.getDate() === end.getDate();
+
+      const startOfDay = new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate(),
+        0,
+        0,
+        0,
+        0,
+      );
+
+      const endOfDay = new Date(
+        end.getFullYear(),
+        end.getMonth(),
+        end.getDate(),
+        23,
+        59,
+        59,
+        999,
+      );
+
+      query.andWhere("sale.created_at BETWEEN :start AND :end", {
+        start: startOfDay,
+        end: sameDay ? endOfDay : endOfDay, // Siempre fin de día completo
       });
-
-    if (endDate)
+    } else if (startDate) {
+      const start = new Date(startDate);
+      const startOfDay = new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate(),
+        0,
+        0,
+        0,
+        0,
+      );
+      query.andWhere("sale.created_at >= :startDate", {
+        startDate: startOfDay,
+      });
+    } else if (endDate) {
+      const end = new Date(endDate);
+      const endOfDay = new Date(
+        end.getFullYear(),
+        end.getMonth(),
+        end.getDate(),
+        23,
+        59,
+        59,
+        999,
+      );
       query.andWhere("sale.created_at <= :endDate", {
-        endDate: new Date(endDate).toISOString(),
+        endDate: endOfDay,
       });
-    const [data, total] = await query.getManyAndCount();
-
-    return new PaginatedResponseDto(data, total, limit, offset);
-  }
-
-  async findAll2(dto: GetSalesDto): Promise<PaginatedResponseDto<Sale>> {
-    const { limit = 10, offset = 0, startDate, endDate, status } = dto;
-
-    const query = this.saleRepository
-      .createQueryBuilder("sale")
-      .leftJoinAndSelect("sale.items", "item")
-      .leftJoinAndSelect("item.product", "product")
-      .skip(offset)
-      .take(limit);
-
-    if (status) query.andWhere("sale.status = :status", { status });
-
-    if (startDate)
-      query.andWhere("sale.created_at >= :startDate", {
-        startDate: new Date(startDate).toISOString().slice(0, 10),
-      });
-
-    if (endDate) query.andWhere("sale.created_at <= :endDate", { endDate });
+    }
 
     const [data, total] = await query.getManyAndCount();
-
     return new PaginatedResponseDto(data, total, limit, offset);
   }
 
   async getResumenVentasPorFecha(dto: GetSalesDto): Promise<TotalSalesDto> {
     const { startDate, endDate, status } = dto;
-
+    console.log("getResumenVentasPorFecha", startDate, endDate);
     if (!startDate || !endDate) {
       throw new Error("Debe proporcionar ambas fechas: startDate y endDate");
     }
@@ -78,53 +110,24 @@ export class SaleService {
       start.getMonth() === end.getMonth() &&
       start.getDate() === end.getDate();
 
-    // const startOfDay = new Date(
-    //   start.getFullYear(),
-    //   start.getMonth(),
-    //   start.getDate(),
-    //   0,
-    //   0,
-    //   0,
-    //   0,
-    // );
-
-    // const endOfDay = new Date(
-    //   end.getFullYear(),
-    //   end.getMonth(),
-    //   end.getDate(),
-    //   23,
-    //   59,
-    //   59,
-    //   999,
-    // );
-
-    const toUtc = (localDate: Date) => {
-      const offsetMs = localDate.getTimezoneOffset() * 60 * 1000;
-      return new Date(localDate.getTime() - offsetMs);
-    };
-
-    const startOfDay = toUtc(
-      new Date(
-        start.getFullYear(),
-        start.getMonth(),
-        start.getDate(),
-        0,
-        0,
-        0,
-        0,
-      ),
+    const startOfDay = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate(),
+      0,
+      0,
+      0,
+      0,
     );
 
-    const endOfDay = toUtc(
-      new Date(
-        end.getFullYear(),
-        end.getMonth(),
-        end.getDate(),
-        23,
-        59,
-        59,
-        999,
-      ),
+    const endOfDay = new Date(
+      end.getFullYear(),
+      end.getMonth(),
+      end.getDate(),
+      23,
+      59,
+      59,
+      999,
     );
 
     const query = this.saleRepository
