@@ -62,7 +62,7 @@ export class ReportController {
       res.set({
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename=reporte-proveedor-${investor}.xlsx`,
+        "Content-Disposition": `attachment; filename=reporte-${`${investor}-${startDate}-${endDate}`}.xlsx`,
       });
 
       res.send(buffer);
