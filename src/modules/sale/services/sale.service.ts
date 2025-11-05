@@ -1,16 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Sale } from "../entities/sale.entity";
-import { GetSalesDto } from "../dto/get-sales.dto";
 import { PaginatedResponseDto } from "src/core/dto/paginated-response.dto";
+import { Repository } from "typeorm";
+import { GetSalesDto } from "../dto/get-sales.dto";
+import { GetTotalSalesDto } from "../dto/get-total-sales";
+import { PaymentMethodSummaryDto } from "../dto/sales-payment";
 import { TotalSalesDto } from "../dto/total-sales.dto";
+import { Sale } from "../entities/sale.entity";
 
 @Injectable()
 export class SaleService {
   constructor(
     @InjectRepository(Sale)
-    private readonly saleRepository: Repository<Sale>,
+    private readonly saleRepository: Repository<Sale>
   ) {}
 
   async findAll(dto: GetSalesDto): Promise<PaginatedResponseDto<Sale>> {
@@ -43,7 +46,7 @@ export class SaleService {
         0,
         0,
         0,
-        0,
+        0
       );
 
       const endOfDay = new Date(
@@ -53,12 +56,12 @@ export class SaleService {
         23,
         59,
         59,
-        999,
+        999
       );
 
       query.andWhere("sale.created_at BETWEEN :start AND :end", {
         start: startOfDay,
-        end: sameDay ? endOfDay : endOfDay, // Siempre fin de día completo
+        end: sameDay ? endOfDay : endOfDay,
       });
     } else if (startDate) {
       const start = new Date(startDate);
@@ -69,7 +72,7 @@ export class SaleService {
         0,
         0,
         0,
-        0,
+        0
       );
       query.andWhere("sale.created_at >= :startDate", {
         startDate: startOfDay,
@@ -83,7 +86,7 @@ export class SaleService {
         23,
         59,
         59,
-        999,
+        999
       );
       query.andWhere("sale.created_at <= :endDate", {
         endDate: endOfDay,
@@ -94,10 +97,82 @@ export class SaleService {
     return new PaginatedResponseDto(data, total, limit, offset);
   }
 
+  async getVentasPorMetodoPago(
+    dto: GetTotalSalesDto
+  ): Promise<PaymentMethodSummaryDto> {
+    const { startDate, endDate } = dto;
+
+    const normalizeDateRange = (
+      startDate?: Date | string,
+      endDate?: Date | string
+    ) => {
+      const range: { start?: Date; end?: Date } = {};
+
+      if (startDate) {
+        const start = new Date(startDate);
+        range.start = new Date(start.setHours(0, 0, 0, 0));
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        range.end = new Date(end.setHours(23, 59, 59, 999));
+      }
+
+      return range;
+    };
+
+    const { start, end } = normalizeDateRange(startDate, endDate);
+
+    // Definir la interfaz para los resultados
+    interface PaymentMethodResult {
+      paymentMethod: string;
+      totalAmount: string;
+    }
+
+    const query = this.saleRepository
+      .createQueryBuilder("sale")
+      .select("sale.paymentMethod", "paymentMethod")
+      .addSelect("SUM(sale.total)", "totalAmount")
+      .where("sale.status = :status", { status: "charged" });
+
+    if (start && end) {
+      query.andWhere("sale.created_at BETWEEN :start AND :end", { start, end });
+    } else if (start) {
+      query.andWhere("sale.created_at >= :start", { start });
+    } else if (end) {
+      query.andWhere("sale.created_at <= :end", { end });
+    }
+
+    const results = (await query
+      .groupBy("sale.paymentMethod")
+      .getRawMany()) as PaymentMethodResult[];
+
+    const summary: Record<string, number> = {
+      efectivo: 0,
+      transferencia: 0,
+      free: 0,
+    };
+
+    for (const result of results) {
+      const method = (result.paymentMethod?.toLowerCase() || "otros") as string;
+      const totalAmount = Number(result.totalAmount || 0);
+
+      if (method in summary) {
+        summary[method] += totalAmount;
+      }
+    }
+
+    const total = Object.values(summary).reduce((a, b) => a + b, 0);
+
+    return {
+      efectivo: summary.efectivo || 0,
+      transferencia: summary.transferencia || 0,
+      free: summary.free || 0,
+      total,
+    };
+  }
+
   async findByDay(startDate: Date, status?: string): Promise<Sale[]> {
     const utcDate = new Date(startDate);
-
-    // Construimos inicio y fin del día con base en la fecha UTC
     const startOfDay = new Date(
       utcDate.getUTCFullYear(),
       utcDate.getUTCMonth(),
@@ -105,7 +180,7 @@ export class SaleService {
       0,
       0,
       0,
-      0,
+      0
     );
 
     const endOfDay = new Date(
@@ -115,10 +190,9 @@ export class SaleService {
       23,
       59,
       59,
-      999,
+      999
     );
 
-    // startOfDay.setHours(startOfDay.getHours() - 5);
     endOfDay.setHours(endOfDay.getHours() - 5);
 
     const query = this.saleRepository
@@ -159,7 +233,7 @@ export class SaleService {
       0,
       0,
       0,
-      0,
+      0
     );
 
     const endOfDay = new Date(
@@ -169,7 +243,7 @@ export class SaleService {
       23,
       59,
       59,
-      999,
+      999
     );
 
     const query = this.saleRepository
