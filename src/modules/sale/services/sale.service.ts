@@ -13,7 +13,7 @@ import { Sale } from "../entities/sale.entity";
 export class SaleService {
   constructor(
     @InjectRepository(Sale)
-    private readonly saleRepository: Repository<Sale>
+    private readonly saleRepository: Repository<Sale>,
   ) {}
 
   async findAll(dto: GetSalesDto): Promise<PaginatedResponseDto<Sale>> {
@@ -46,7 +46,7 @@ export class SaleService {
         0,
         0,
         0,
-        0
+        0,
       );
 
       const endOfDay = new Date(
@@ -56,7 +56,7 @@ export class SaleService {
         23,
         59,
         59,
-        999
+        999,
       );
 
       query.andWhere("sale.created_at BETWEEN :start AND :end", {
@@ -72,7 +72,7 @@ export class SaleService {
         0,
         0,
         0,
-        0
+        0,
       );
       query.andWhere("sale.created_at >= :startDate", {
         startDate: startOfDay,
@@ -86,7 +86,7 @@ export class SaleService {
         23,
         59,
         59,
-        999
+        999,
       );
       query.andWhere("sale.created_at <= :endDate", {
         endDate: endOfDay,
@@ -98,13 +98,13 @@ export class SaleService {
   }
 
   async getVentasPorMetodoPago(
-    dto: GetTotalSalesDto
+    dto: GetTotalSalesDto,
   ): Promise<PaymentMethodSummaryDto> {
     const { startDate, endDate } = dto;
 
     const normalizeDateRange = (
       startDate?: Date | string,
-      endDate?: Date | string
+      endDate?: Date | string,
     ) => {
       const range: { start?: Date; end?: Date } = {};
 
@@ -180,7 +180,7 @@ export class SaleService {
       0,
       0,
       0,
-      0
+      0,
     );
 
     const endOfDay = new Date(
@@ -190,7 +190,7 @@ export class SaleService {
       23,
       59,
       59,
-      999
+      999,
     );
 
     endOfDay.setHours(endOfDay.getHours() - 5);
@@ -233,7 +233,7 @@ export class SaleService {
       0,
       0,
       0,
-      0
+      0,
     );
 
     const endOfDay = new Date(
@@ -243,7 +243,7 @@ export class SaleService {
       23,
       59,
       59,
-      999
+      999,
     );
 
     const query = this.saleRepository

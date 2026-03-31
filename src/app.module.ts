@@ -10,6 +10,7 @@ import { join } from "path";
 import { ReportModule } from "./modules/report/report.module";
 import { SettingModule } from "./modules/setting/setting.module";
 import { MigrationModule } from "./modules/migration/migration.module";
+import { UserModule } from "./modules/user/user.module";
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { MigrationModule } from "./modules/migration/migration.module";
       type: "better-sqlite3",
       database: "uploads/db.db",
       entities: [__dirname + "/**/*.entity{.ts,.js}"],
-      synchronize: true, // Solo para desarrollo
+      synchronize: true, // en true Solo para desarrollo
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, "..", "uploads"),
@@ -28,6 +29,7 @@ import { MigrationModule } from "./modules/migration/migration.module";
     ReportModule,
     SettingModule,
     MigrationModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
