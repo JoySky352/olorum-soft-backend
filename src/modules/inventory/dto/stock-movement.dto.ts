@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsNumber, IsOptional, IsString, IsDate, Min } from "class-validator";
+import { IsNumber, IsOptional, IsString, IsDate, Min, IsIn } from "class-validator";
 import { Type } from "class-transformer";
 
 export class CreateStockMovementDto {
@@ -23,6 +23,23 @@ export class CreateStockMovementDto {
   @IsNumber()
   @Min(0)
   newUnitPrice?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+// DTO específico para mermas
+export class CreateWastageDto {
+  @ApiProperty()
+  @IsNumber()
+  productId: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0.01)
+  quantityRemoved: number;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -57,4 +74,10 @@ export class GetStockMovementsDto {
   @IsOptional()
   @IsNumber()
   offset?: number;
+
+  @ApiPropertyOptional({ enum: ['entry', 'wastage'] })
+  @IsOptional()
+  @IsString()
+  @IsIn(['entry', 'wastage'])
+  type?: string;
 }

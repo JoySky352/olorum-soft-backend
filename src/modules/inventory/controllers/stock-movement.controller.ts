@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from "@nestjs/swagger";
 import { StockMovementService } from "../services/stock-movement.service";
-import { CreateStockMovementDto, GetStockMovementsDto } from "../dto/stock-movement.dto";
+import { CreateStockMovementDto, GetStockMovementsDto, CreateWastageDto } from "../dto/stock-movement.dto";
 import { StockMovement } from "../entities/stock-movement.entity";
 import { PaginatedResponseDto } from "src/core/dto/paginated-response.dto";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
@@ -21,14 +21,28 @@ import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 export class StockMovementController {
     constructor(private readonly movementService: StockMovementService) { }
 
-    @Post()
+    @Post("entry")
     @ApiOperation({ summary: "Registrar una entrada de producto" })
     @ApiResponse({ status: 201, type: StockMovement })
-    async create(
+    async createEntry(
         @Body() dto: CreateStockMovementDto,
         @Request() req,
     ): Promise<StockMovement> {
-        return this.movementService.create(
+        return this.movementService.createEntry(
+            dto,
+            req.user.id,
+            req.user.username,
+        );
+    }
+
+    @Post("wastage")
+    @ApiOperation({ summary: "Registrar una merma (pérdida de stock)" })
+    @ApiResponse({ status: 201, type: StockMovement })
+    async createWastage(
+        @Body() dto: CreateWastageDto,
+        @Request() req,
+    ): Promise<StockMovement> {
+        return this.movementService.createWastage(
             dto,
             req.user.id,
             req.user.username,
