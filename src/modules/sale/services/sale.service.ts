@@ -14,7 +14,7 @@ export class SaleService {
   constructor(
     @InjectRepository(Sale)
     private readonly saleRepository: Repository<Sale>,
-  ) {}
+  ) { }
 
   async findAll(dto: GetSalesDto): Promise<PaginatedResponseDto<Sale>> {
     const { limit = 10, offset = 0, startDate, endDate, status } = dto;
@@ -129,11 +129,13 @@ export class SaleService {
       totalAmount: string;
     }
 
+    // Query para Efectivo y Transferencia (sumamos el total de la venta)
     const query = this.saleRepository
       .createQueryBuilder("sale")
       .select("sale.paymentMethod", "paymentMethod")
       .addSelect("SUM(sale.total)", "totalAmount")
-      .where("sale.status = :status", { status: "charged" });
+      .where("sale.status = :status", { status: "charged" })
+      .andWhere("sale.paymentMethod != :free", { free: "Free" });
 
     if (start && end) {
       query.andWhere("sale.created_at BETWEEN :start AND :end", { start, end });
@@ -147,19 +149,47 @@ export class SaleService {
       .groupBy("sale.paymentMethod")
       .getRawMany()) as PaymentMethodResult[];
 
+    // Query para Free (sumamos el costo de los productos)
+    const queryFree = this.saleRepository
+      .createQueryBuilder("sale")
+      .leftJoin("sale.items", "item")
+      .leftJoin("item.product", "product")
+      .select("'Free'", "paymentMethod")
+      .addSelect("SUM(item.quantity * COALESCE(product.unitCost, 0))", "totalAmount")
+      .where("sale.status = :status", { status: "charged" })
+      .andWhere("sale.paymentMethod = :free", { free: "Free" });
+
+    if (start && end) {
+      queryFree.andWhere("sale.created_at BETWEEN :start AND :end", { start, end });
+    } else if (start) {
+      queryFree.andWhere("sale.created_at >= :start", { start });
+    } else if (end) {
+      queryFree.andWhere("sale.created_at <= :end", { end });
+    }
+
+    const resultFree = await queryFree.getRawOne();
+
     const summary: Record<string, number> = {
       efectivo: 0,
       transferencia: 0,
       free: 0,
     };
 
+    // Procesar resultados de Efectivo y Transferencia
     for (const result of results) {
       const method = (result.paymentMethod?.toLowerCase() || "otros") as string;
       const totalAmount = Number(result.totalAmount || 0);
 
-      if (method in summary) {
-        summary[method] += totalAmount;
+      if (method === "efectivo") {
+        summary.efectivo += totalAmount;
+      } else if (method === "transferencia") {
+        summary.transferencia += totalAmount;
       }
+    }
+
+    // Procesar resultado de Free (costo)
+    if (resultFree && resultFree.totalAmount) {
+      summary.free = Number(resultFree.totalAmount);
     }
 
     const total = Object.values(summary).reduce((a, b) => a + b, 0);
