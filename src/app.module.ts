@@ -13,6 +13,7 @@ import { SettingModule } from "./modules/setting/setting.module";
 import { MigrationModule } from "./modules/migration/migration.module";
 import { UserModule } from "./modules/user/user.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { NewReportsModule } from "./modules/new-reports/new-reports.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { AuthModule } from "./modules/auth/auth.module";
     MigrationModule,
     UserModule,
     AuthModule,
+    NewReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
