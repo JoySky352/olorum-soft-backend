@@ -294,19 +294,23 @@ export class SaleService {
 
     const totalVentas = sales.length;
 
-    const ingresosTotales = sales.reduce((acc, s) => acc + Number(s.total), 0);
+    // Ingresos totales (solo ventas pagadas, excluyendo Free)
+    const ingresosTotales = sales
+      .filter(s => s.paymentMethod !== "Free")
+      .reduce((acc, s) => acc + Number(s.total), 0);
 
-    const gananciaTotal = sales.reduce((acc, s) => {
-      return (
-        acc +
-        s.items.reduce((sum, item) => {
-          const ingreso = Number(item.unitPrice) * Number(item.quantity);
-          const costo =
-            Number(item.product?.unitCost || 0) * Number(item.quantity);
-          return sum + (ingreso - costo);
-        }, 0)
-      );
-    }, 0);
+    // Calcular costo total de TODAS las ventas (incluyendo Free)
+    let costoTotal = 0;
+
+    for (const sale of sales) {
+      for (const item of sale.items) {
+        const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
+        costoTotal += costo;
+      }
+    }
+
+    // Ganancia = Ingresos - Costo Total
+    const gananciaTotal = ingresosTotales - costoTotal;
 
     return {
       totalVentas,
