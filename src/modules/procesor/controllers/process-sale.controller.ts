@@ -5,13 +5,16 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
+  Request,
 } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { ProcessSaleService } from "../services/process-sale.service";
 import { Sale } from "src/modules/sale/entities/sale.entity";
 import { CreateSaleDto } from "src/modules/sale/dto/create-sale.dto";
 import { RefundSaleDto } from "src/modules/sale/dto/refund-sale.dto";
 import { ProcessRefundService } from "../services/process-refund.service";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
 @ApiTags("ventas")
 @Controller("sales")
@@ -19,14 +22,17 @@ export class ProcessSaleController {
   constructor(
     private readonly processSaleService: ProcessSaleService,
     private readonly processRefundService: ProcessRefundService,
-  ) {}
+  ) { }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Crear una nueva venta" })
   @ApiResponse({ status: 201, description: "Venta creada", type: Sale })
-  async create(@Body() dto: CreateSaleDto): Promise<Sale> {
+  async create(@Body() dto: CreateSaleDto, @Request() req): Promise<Sale> {
     try {
-      return await this.processSaleService.sale(dto);
+      // Pasar el userId al servicio
+      return await this.processSaleService.sale(dto, req.user?.id);
     } catch (error) {
       throw new BadRequestException(
         (error as Error).message || "Error al crear la venta",
@@ -35,6 +41,8 @@ export class ProcessSaleController {
   }
 
   @Put(":id/refund")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Devolver una venta" })
   @ApiResponse({
     status: 200,
@@ -49,7 +57,7 @@ export class ProcessSaleController {
       return await this.processRefundService.refund(id, dto);
     } catch (error) {
       throw new BadRequestException(
-        (error as Error).message || "Error al crear la venta",
+        (error as Error).message || "Error al devolver la venta",
       );
     }
   }

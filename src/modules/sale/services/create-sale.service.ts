@@ -13,30 +13,36 @@ export class CreateSaleService {
     private readonly saleRepository: Repository<Sale>,
     @InjectRepository(SaleItem)
     private readonly saleItemRepository: Repository<SaleItem>,
-  ) {}
+  ) { }
 
-  async create(dto: CreateSaleDto, manager: EntityManager) {
+  async create(dto: CreateSaleDto, manager: EntityManager, userId?: number) {
     const total =
       dto.paymentMethod === "Free"
         ? 0
         : dto.items.reduce(
-            (sum, item) => sum + item.quantity * item.unitPrice,
-            0,
-          );
+          (sum, item) => sum + item.quantity * item.unitPrice,
+          0,
+        );
     if (total <= 0 && dto.paymentMethod !== "Free")
       throw new BadRequestException(
         "El total de la venta debe ser mayor que 0",
       );
 
-    const sale = manager.create(Sale, {
+    // Crear la venta con los datos
+    const saleData: Partial<Sale> = {
       paymentMethod: dto.paymentMethod,
       total,
-      // createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
       createdAt: new Date(),
       refunded: 0,
       status: "created",
-    });
+    };
 
+    // Asignar userId solo si existe
+    if (userId) {
+      saleData.userId = userId;
+    }
+
+    const sale = manager.create(Sale, saleData);
     await manager.save(sale);
 
     await Promise.all(
@@ -64,14 +70,6 @@ export class CreateSaleService {
   }
 
   async createMany(dtos: ImportSaleDto[]) {
-    // const sale = manager.create(Sale, {
-    //   paymentMethod: dto.paymentMethod,
-    //   total,
-    //   createdAt: new Date(),
-    //   refunded: 0,
-    //   status: 'created',
-    // });
-
     const sales = await this.saleRepository.save(dtos);
     for (let index = 0; index < sales.length; index++) {
       const sale = sales[index];
@@ -80,28 +78,5 @@ export class CreateSaleService {
         dto.items.map((i) => ({ ...i, sale })),
       );
     }
-
-    // await Promise.all(
-    //   dto.items.map((item) => {
-    //     const total =
-    //       dto.paymentMethod === 'Free' ? 0 : item.unitPrice * item.quantity;
-    //     if (total <= 0 && dto.paymentMethod !== 'Free')
-    //       return Promise.reject(
-    //         new Error(`Total del producto con ID: ${item.productId} inválido`),
-    //       );
-    //     const invoiceItem = manager.create(SaleItem, {
-    //       sale,
-    //       productId: item.productId,
-    //       quantity: item.quantity,
-    //       unitPrice: item.unitPrice,
-    //       quantityRefunded: 0,
-    //       refunded: 0,
-    //       total,
-    //     });
-    //     return manager.save(invoiceItem);
-    //   }),
-    // );
-
-    // return sale;
   }
 }

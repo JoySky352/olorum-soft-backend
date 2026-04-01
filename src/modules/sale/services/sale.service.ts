@@ -23,6 +23,7 @@ export class SaleService {
       .createQueryBuilder("sale")
       .leftJoinAndSelect("sale.items", "item")
       .leftJoinAndSelect("item.product", "product")
+      .leftJoinAndSelect("sale.user", "user")
       .skip(offset)
       .take(limit);
 

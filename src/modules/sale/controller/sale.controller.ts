@@ -17,7 +17,10 @@ import { SaleService } from "../services/sale.service";
 @ApiTags("ventas")
 @Controller("sales")
 export class SaleController {
-  constructor(private readonly saleService: SaleService) {}
+  constructor(
+    private readonly saleService: SaleService,
+    // Eliminar CreateSaleService
+  ) { }
 
   @Get()
   @ApiOperation({ summary: "Obtener ventas con filtros y paginación" })
@@ -37,6 +40,12 @@ export class SaleController {
     }
   }
 
+  // ELIMINAR COMPLETAMENTE este método:
+  // @Post()
+  // @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth()
+  // async crearVenta(@Body() dto: CreateSaleDto, @Request() req) { ... }
+
   @Get("resumen/metodos-pago")
   @ApiOperation({
     summary: "Obtener la cantidad de ventas por método de pago",
@@ -54,7 +63,7 @@ export class SaleController {
     } catch (error) {
       throw new InternalServerErrorException(
         (error as Error).message ||
-          "Error al obtener resumen por método de pago"
+        "Error al obtener resumen por método de pago"
       );
     }
   }
@@ -76,8 +85,8 @@ export class SaleController {
       throw error instanceof BadRequestException
         ? error
         : new InternalServerErrorException(
-            (error as Error).message || "Error al obtener el resumen diario"
-          );
+          (error as Error).message || "Error al obtener el resumen diario"
+        );
     }
   }
 }

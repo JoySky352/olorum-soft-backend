@@ -6,10 +6,28 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
     exposedHeaders: ["Content-Disposition"],
   });
 
-  const config = new DocumentBuilder().setTitle("OlorunSoft").build();
+  const config = new DocumentBuilder()
+    .setTitle("OlorunSoft")
+    .setDescription("API para sistema de comercio OlorunSoft")
+    .setVersion("1.0")
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Ingrese el token JWT',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .build();
+
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api-docs", app, documentFactory);
 

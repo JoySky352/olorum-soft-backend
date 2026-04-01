@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -11,9 +12,14 @@ import { ReportModule } from "./modules/report/report.module";
 import { SettingModule } from "./modules/setting/setting.module";
 import { MigrationModule } from "./modules/migration/migration.module";
 import { UserModule } from "./modules/user/user.module";
+import { AuthModule } from "./modules/auth/auth.module";
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      envFilePath: '.env',
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: "better-sqlite3",
       database: "uploads/db.db",
@@ -30,8 +36,9 @@ import { UserModule } from "./modules/user/user.module";
     SettingModule,
     MigrationModule,
     UserModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

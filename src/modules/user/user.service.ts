@@ -93,15 +93,21 @@ export class UserService {
         const user = await this.userRepository.findOne({ where: { username } });
 
         if (!user || !user.isActive) {
-            throw new UnauthorizedException("Invalid credentials");
+            throw new UnauthorizedException("Credenciales inválidas");
         }
 
         const isPasswordValid = await user.comparePassword(password);
         if (!isPasswordValid) {
-            throw new UnauthorizedException("Invalid credentials");
+            throw new UnauthorizedException("Credenciales inválidas");
         }
 
-        const payload = { sub: user.id, username: user.username, role: user.role };
+        // Payload debe contener sub (subject) que es el ID del usuario
+        const payload = {
+            sub: user.id,
+            username: user.username,
+            role: user.role
+        };
+
         const accessToken = this.jwtService.sign(payload);
 
         return {
@@ -119,12 +125,11 @@ export class UserService {
             const superAdmin = this.userRepository.create({
                 username: "superadmin",
                 email: "superadmin@olorunsoft.com",
-                password: "Admin123!", // Cambiar en producción
+                password: "Admin123!",
                 role: UserRole.SUPER_ADMIN,
                 isActive: true,
             });
             await this.userRepository.save(superAdmin);
-            console.log("Super admin created successfully");
         }
     }
 }

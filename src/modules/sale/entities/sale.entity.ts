@@ -1,5 +1,6 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, JoinColumn, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { SaleItem } from "./sale-item.entity";
+import { User } from "../../user/user.entity";
 
 @Entity("sales")
 export class Sale {
@@ -33,4 +34,12 @@ export class Sale {
 
   @Column({ name: "payment_method" })
   paymentMethod: string;
+
+  // Relación con el usuario
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: "user_id" })
+  user: User;
+
+  @Column({ name: "user_id", nullable: true })
+  userId: number;
 }
