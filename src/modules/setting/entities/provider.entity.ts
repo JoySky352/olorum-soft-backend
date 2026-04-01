@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
-@Entity("categories")
-export class Category {
+@Entity("providers")
+export class Provider {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -9,7 +9,16 @@ export class Category {
     name: string;
 
     @Column({ nullable: true })
-    description: string;
+    contactName: string;
+
+    @Column({ nullable: true })
+    phone: string;
+
+    @Column({ nullable: true })
+    email: string;
+
+    @Column({ nullable: true })
+    address: string;
 
     @Column({ default: true })
     isActive: boolean;
