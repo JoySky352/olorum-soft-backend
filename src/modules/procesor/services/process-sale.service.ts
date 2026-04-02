@@ -16,14 +16,22 @@ export class ProcessSaleService {
     private readonly updateSaleService: UpdateSaleService,
   ) { }
 
-  async sale(dto: CreateSaleDto, userId?: number) {
+  async sale(dto: CreateSaleDto, userId?: number, shiftId?: number) {
+    this.logger.log(`📦 Iniciando venta - Usuario: ${userId || 'anónimo'}, Turno: ${shiftId || 'sin turno'}`);
+
     return this.entityManager.transaction(async (manager) => {
-      const sale = await this.createSaleService.create(dto, manager, userId);
+      const sale = await this.createSaleService.create(dto, manager, userId, shiftId);
+      this.logger.log(`📦 Venta creada con ID: ${sale.id}, Status: ${sale.status}`);
+
       const promises = dto.items.map((i) =>
         this.productService.updateStock(i.productId, -i.quantity, manager),
       );
       await Promise.all(promises);
+      this.logger.log('📦 Stock actualizado');
+
       const chargedSale = await this.updateSaleService.charge(sale, manager);
+      this.logger.log(`📦 Venta finalizada con ID: ${chargedSale.id}, Status: ${chargedSale.status}, Turno: ${chargedSale.shiftId}`);
+
       return chargedSale;
     });
   }

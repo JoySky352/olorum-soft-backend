@@ -1,6 +1,7 @@
 import { Column, Entity, ManyToOne, JoinColumn, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { SaleItem } from "./sale-item.entity";
 import { User } from "../../user/user.entity";
+import { Shift } from "../../shift/entities/shift.entity";
 
 @Entity("sales")
 export class Sale {
@@ -35,11 +36,17 @@ export class Sale {
   @Column({ name: "payment_method" })
   paymentMethod: string;
 
-  // Relación con el usuario
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: "user_id" })
   user: User;
 
   @Column({ name: "user_id", nullable: true })
   userId: number;
+
+  @ManyToOne(() => Shift, { nullable: true })
+  @JoinColumn({ name: "shift_id" })
+  shift: Shift;
+
+  @Column({ name: "shift_id", nullable: true })
+  shiftId: number;
 }

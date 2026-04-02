@@ -14,6 +14,7 @@ import { MigrationModule } from "./modules/migration/migration.module";
 import { UserModule } from "./modules/user/user.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { NewReportsModule } from "./modules/new-reports/new-reports.module";
+import { ShiftModule } from "./modules/shift/shift.module";
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { NewReportsModule } from "./modules/new-reports/new-reports.module";
     UserModule,
     AuthModule,
     NewReportsModule,
+    ShiftModule,
   ],
   controllers: [AppController],
   providers: [AppService],

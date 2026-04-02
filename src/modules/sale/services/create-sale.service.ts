@@ -15,7 +15,7 @@ export class CreateSaleService {
     private readonly saleItemRepository: Repository<SaleItem>,
   ) { }
 
-  async create(dto: CreateSaleDto, manager: EntityManager, userId?: number) {
+  async create(dto: CreateSaleDto, manager: EntityManager, userId?: number, shiftId?: number) {
     const total =
       dto.paymentMethod === "Free"
         ? 0
@@ -40,6 +40,11 @@ export class CreateSaleService {
     // Asignar userId solo si existe
     if (userId) {
       saleData.userId = userId;
+    }
+
+    // Asignar shiftId solo si existe
+    if (shiftId) {
+      saleData.shiftId = shiftId;
     }
 
     const sale = manager.create(Sale, saleData);
