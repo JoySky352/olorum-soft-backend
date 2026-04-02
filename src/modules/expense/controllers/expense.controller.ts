@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request, Res } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from "@nestjs/swagger";
 import { ExpenseService } from "../services/expense.service";
 import { Expense } from "../entities/expense.entity";
@@ -9,6 +9,7 @@ import { RolesGuard } from "../../auth/guards/roles.guard";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { UserRole } from "../../user/user.entity";
 import { ShiftService } from "../../shift/services/shift.service";
+import type { Response } from "express";
 
 @ApiTags("gastos")
 @ApiBearerAuth()
@@ -40,6 +41,16 @@ export class ExpenseController {
     @ApiResponse({ status: 200 })
     async getSummary(@Query() dto: GetExpensesDto): Promise<any> {
         return this.expenseService.getSummary(dto);
+    }
+
+    @Get("export")
+    @ApiOperation({ summary: "Exportar gastos a Excel" })
+    @ApiResponse({ status: 200, description: "Archivo Excel" })
+    async exportToExcel(@Query() dto: GetExpensesDto, @Res() res: Response) {
+        const buffer = await this.expenseService.exportToExcel(dto);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=reporte-gastos-${Date.now()}.xlsx`);
+        res.send(buffer);
     }
 
     @Get(":id")

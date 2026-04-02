@@ -5,6 +5,7 @@ import { Expense } from "../entities/expense.entity";
 import { ExpenseCategory } from "../entities/expense-category.entity";
 import { CreateExpenseDto, UpdateExpenseDto, GetExpensesDto } from "../dto/expense.dto";
 import { PaginatedResponseDto } from "src/core/dto/paginated-response.dto";
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ExpenseService {
@@ -111,38 +112,50 @@ export class ExpenseService {
     }> {
         const { startDate, endDate } = dto;
 
-        const query = this.expenseRepository
+        // Construir la consulta base
+        let query = this.expenseRepository
             .createQueryBuilder("expense")
-            .leftJoin("expense.category", "category");
+            .leftJoinAndSelect("expense.category", "category");
 
+        // Aplicar filtro de fechas
         if (startDate && endDate) {
             const start = new Date(startDate);
             start.setHours(0, 0, 0, 0);
             const end = new Date(endDate);
             end.setHours(23, 59, 59, 999);
-            query.where("expense.expenseDate BETWEEN :start AND :end", { start, end });
+            query = query.where("expense.expenseDate BETWEEN :start AND :end", { start, end });
         }
 
         const expenses = await query.getMany();
 
-        const totalGastos = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-        const gastosFijos = expenses
-            .filter(e => e.category?.type === 'fixed')
-            .reduce((sum, e) => sum + Number(e.amount), 0);
-        const gastosVariables = expenses
-            .filter(e => e.category?.type === 'variable')
-            .reduce((sum, e) => sum + Number(e.amount), 0);
+        // Calcular totales
+        let totalGastos = 0;
+        let gastosFijos = 0;
+        let gastosVariables = 0;
+        const porCategoria: { category: string; total: number }[] = [];
 
-        const porCategoriaMap = new Map<string, number>();
         for (const expense of expenses) {
-            const current = porCategoriaMap.get(expense.categoryName) || 0;
-            porCategoriaMap.set(expense.categoryName, current + Number(expense.amount));
+            const amount = Number(expense.amount);
+            totalGastos += amount;
+
+            // Determinar si es fijo o variable basado en el tipo de la categoría
+            if (expense.category?.type === 'fixed') {
+                gastosFijos += amount;
+            } else {
+                gastosVariables += amount;
+            }
         }
 
-        const porCategoria = Array.from(porCategoriaMap.entries()).map(([category, total]) => ({
-            category,
-            total: parseFloat(total.toFixed(2)),
-        }));
+        // Agrupar por categoría
+        const categoriaMap = new Map<string, number>();
+        for (const expense of expenses) {
+            const current = categoriaMap.get(expense.categoryName) || 0;
+            categoriaMap.set(expense.categoryName, current + Number(expense.amount));
+        }
+
+        for (const [category, total] of categoriaMap) {
+            porCategoria.push({ category, total: parseFloat(total.toFixed(2)) });
+        }
 
         return {
             totalGastos: parseFloat(totalGastos.toFixed(2)),
@@ -150,5 +163,87 @@ export class ExpenseService {
             gastosVariables: parseFloat(gastosVariables.toFixed(2)),
             porCategoria,
         };
+    }
+
+    async exportToExcel(dto: GetExpensesDto): Promise<Buffer> {
+        const { data } = await this.findAll(dto);
+        const expenses = data;
+        const summary = await this.getSummary(dto);
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Reporte de Gastos');
+
+        // Título
+        worksheet.mergeCells('A1:F1');
+        worksheet.getCell('A1').value = 'REPORTE DE GASTOS';
+        worksheet.getCell('A1').font = { size: 16, bold: true };
+        worksheet.getCell('A1').alignment = { horizontal: 'center' };
+
+        // Fecha del reporte
+        worksheet.getCell('A2').value = `Generado: ${new Date().toLocaleString('es-CU')}`;
+        worksheet.getCell('A2').alignment = { horizontal: 'left' };
+
+        // Resumen
+        let row = 4;
+        worksheet.getCell(`A${row}`).value = 'RESUMEN GENERAL';
+        worksheet.getCell(`A${row}`).font = { bold: true };
+        row++;
+
+        worksheet.getCell(`A${row}`).value = 'Total Gastos:';
+        worksheet.getCell(`B${row}`).value = summary.totalGastos;
+        row++;
+        worksheet.getCell(`A${row}`).value = 'Gastos Fijos:';
+        worksheet.getCell(`B${row}`).value = summary.gastosFijos;
+        row++;
+        worksheet.getCell(`A${row}`).value = 'Gastos Variables:';
+        worksheet.getCell(`B${row}`).value = summary.gastosVariables;
+        row += 2;
+
+        // Tabla de gastos
+        worksheet.getCell(`A${row}`).value = 'LISTADO DE GASTOS';
+        worksheet.getCell(`A${row}`).font = { bold: true };
+        row++;
+
+        const headers = ['Fecha', 'Descripción', 'Categoría', 'Tipo', 'Monto', 'Usuario'];
+        worksheet.addRow(headers);
+        const headerRow = worksheet.getRow(row);
+        headerRow.font = { bold: true };
+        headerRow.eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFD9D9D9' },
+            };
+        });
+        row++;
+
+        for (const expense of expenses) {
+            const category = expense.category;
+            const expenseDate = new Date(expense.expenseDate);
+            const formattedDate = `${expenseDate.getDate().toString().padStart(2, '0')}/${(expenseDate.getMonth() + 1).toString().padStart(2, '0')}/${expenseDate.getFullYear()}`;
+
+            worksheet.addRow([
+                formattedDate,
+                expense.description,
+                expense.categoryName,
+                category?.type === 'fixed' ? 'Fijo' : 'Variable',
+                expense.amount,
+                expense.userName,
+            ]);
+            row++;
+        }
+
+        // Ajustar columnas
+        worksheet.columns.forEach(col => {
+            let maxLength = 10;
+            col.eachCell?.({ includeEmpty: true }, (cell) => {
+                const val = cell.value ? String(cell.value) : '';
+                if (val.length > maxLength) maxLength = val.length;
+            });
+            col.width = maxLength + 2;
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        return Buffer.from(buffer);
     }
 }
