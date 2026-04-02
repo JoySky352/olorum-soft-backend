@@ -9,6 +9,12 @@ import { PaymentMethodSummaryDto } from "../dto/sales-payment";
 import { TotalSalesDto } from "../dto/total-sales.dto";
 import { Sale } from "../entities/sale.entity";
 
+// Definir la interfaz dentro del archivo
+interface PaymentMethodResult {
+  paymentMethod: string;
+  totalAmount: string;
+}
+
 @Injectable()
 export class SaleService {
   constructor(
@@ -31,6 +37,7 @@ export class SaleService {
       query.andWhere("sale.status = :status", { status });
     }
 
+    // Filtro por turno
     if (shiftId) {
       query.andWhere("sale.shift_id = :shiftId", { shiftId });
     }
@@ -127,12 +134,6 @@ export class SaleService {
 
     const { start, end } = normalizeDateRange(startDate, endDate);
 
-    // Definir la interfaz para los resultados
-    interface PaymentMethodResult {
-      paymentMethod: string;
-      totalAmount: string;
-    }
-
     // Query para Efectivo y Transferencia (sumamos el total de la venta)
     const query = this.saleRepository
       .createQueryBuilder("sale")
@@ -153,7 +154,7 @@ export class SaleService {
       .groupBy("sale.paymentMethod")
       .getRawMany()) as PaymentMethodResult[];
 
-    // Query para Free (sumamos el costo de los productos)
+    // Query para Free - sumamos el COSTO de los productos (para control interno)
     const queryFree = this.saleRepository
       .createQueryBuilder("sale")
       .leftJoin("sale.items", "item")
@@ -191,12 +192,13 @@ export class SaleService {
       }
     }
 
-    // Procesar resultado de Free (costo)
+    // Procesar resultado de Free - suma del costo
     if (resultFree && resultFree.totalAmount) {
       summary.free = Number(resultFree.totalAmount);
     }
 
-    const total = Object.values(summary).reduce((a, b) => a + b, 0);
+    // TOTAL = solo efectivo + transferencia (sin incluir free)
+    const total = summary.efectivo + summary.transferencia;
 
     return {
       efectivo: summary.efectivo || 0,
@@ -298,12 +300,10 @@ export class SaleService {
 
     const totalVentas = sales.length;
 
-    // Ingresos totales (solo ventas pagadas, excluyendo Free)
     const ingresosTotales = sales
       .filter(s => s.paymentMethod !== "Free")
       .reduce((acc, s) => acc + Number(s.total), 0);
 
-    // Calcular costo total de TODAS las ventas (incluyendo Free)
     let costoTotal = 0;
 
     for (const sale of sales) {
@@ -313,7 +313,6 @@ export class SaleService {
       }
     }
 
-    // Ganancia = Ingresos - Costo Total
     const gananciaTotal = ingresosTotales - costoTotal;
 
     return {

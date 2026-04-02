@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsDate, IsEnum, IsNumberString, IsOptional, IsNumber } from "class-validator";
+import { Type } from "class-transformer";
 
 export class GetSalesDto {
   @ApiPropertyOptional({
@@ -12,11 +13,13 @@ export class GetSalesDto {
 
   @ApiPropertyOptional({ description: "Fecha inicio" })
   @IsOptional()
+  @Type(() => Date)
   @IsDate()
   startDate?: Date;
 
   @ApiPropertyOptional({ description: "Fecha fin" })
   @IsOptional()
+  @Type(() => Date)
   @IsDate()
   endDate?: Date;
 
