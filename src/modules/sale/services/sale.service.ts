@@ -17,7 +17,7 @@ export class SaleService {
   ) { }
 
   async findAll(dto: GetSalesDto): Promise<PaginatedResponseDto<Sale>> {
-    const { limit = 10, offset = 0, startDate, endDate, status } = dto;
+    const { limit = 10, offset = 0, startDate, endDate, status, shiftId } = dto;
 
     const query = this.saleRepository
       .createQueryBuilder("sale")
@@ -29,6 +29,10 @@ export class SaleService {
 
     if (status) {
       query.andWhere("sale.status = :status", { status });
+    }
+
+    if (shiftId) {
+      query.andWhere("sale.shift_id = :shiftId", { shiftId });
     }
 
     if (startDate && endDate) {

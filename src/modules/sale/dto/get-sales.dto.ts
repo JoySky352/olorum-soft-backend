@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDate, IsEnum, IsNumberString, IsOptional } from "class-validator";
+import { IsDate, IsEnum, IsNumberString, IsOptional, IsNumber } from "class-validator";
 
 export class GetSalesDto {
   @ApiPropertyOptional({
@@ -19,6 +19,11 @@ export class GetSalesDto {
   @IsOptional()
   @IsDate()
   endDate?: Date;
+
+  @ApiPropertyOptional({ description: "ID del turno" })
+  @IsOptional()
+  @IsNumber()
+  shiftId?: number;
 
   @ApiPropertyOptional({ description: "Cantidad de elementos a retornar" })
   @IsOptional()
