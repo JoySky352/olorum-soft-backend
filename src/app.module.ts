@@ -15,6 +15,7 @@ import { UserModule } from "./modules/user/user.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { NewReportsModule } from "./modules/new-reports/new-reports.module";
 import { ShiftModule } from "./modules/shift/shift.module";
+import { ExpenseModule } from "./modules/expense/expense.module";
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ShiftModule } from "./modules/shift/shift.module";
     AuthModule,
     NewReportsModule,
     ShiftModule,
+    ExpenseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
