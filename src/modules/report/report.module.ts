@@ -1,12 +1,14 @@
 import { Module } from "@nestjs/common";
-import { ReportController } from "./controllers/report.controller";
-import { DailyReportService } from "./services/daily-report.service";
-import { SaleModule } from "../sale/sale.module";
-import { InvestorReportService } from "./services/investor-report.service";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { ShiftReportController } from "./controllers/shift-report.controller";
+import { ShiftReportService } from "./services/shift-report.service";
+import { Shift } from "../shift/entities/shift.entity";
+import { Sale } from "../sale/entities/sale.entity";
 
 @Module({
-  imports: [SaleModule],
-  controllers: [ReportController],
-  providers: [DailyReportService, InvestorReportService],
+  imports: [TypeOrmModule.forFeature([Shift, Sale])],
+  controllers: [ShiftReportController],
+  providers: [ShiftReportService],
+  exports: [ShiftReportService],
 })
-export class ReportModule {}
+export class ReportModule { }
