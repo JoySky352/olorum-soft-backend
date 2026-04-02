@@ -1,4 +1,3 @@
-/* eslint-disable */
 import {
   Controller,
   Get,
@@ -6,11 +5,13 @@ import {
   Body,
   Param,
   Put,
+  Delete,
   BadRequestException,
   InternalServerErrorException,
   Query,
   UseInterceptors,
   UploadedFile,
+  Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { ProductService } from '../services/product.service';
@@ -22,7 +23,6 @@ import { GetProductsDto } from '../dto/get-products.dto';
 import { PaginatedResponseDto } from 'src/core/dto/paginated-response.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductPictureService } from '../services/product-picture.service';
-
 @ApiTags('productos')
 @Controller('products')
 export class ProductController {
@@ -76,10 +76,10 @@ export class ProductController {
     @Param('id') id: number,
     @Body() dto: UpdateProductDto,
   ): Promise<void> {
-      await this.productService.update(
-        id,
-        dto,
-      );
+    await this.productService.update(
+      id,
+      dto,
+    );
   }
 
   @Get('inventary/value')
@@ -91,4 +91,19 @@ export class ProductController {
   async getAllInventory() {
     return this.productService.calculateAllStock()
   }
+
+  @Patch(':id/deactivate')
+  @ApiOperation({ summary: 'Desactivar un producto' })
+  @ApiResponse({ status: 200, description: 'Producto desactivado' })
+  async deactivate(@Param('id') id: number): Promise<void> {
+    return this.productService.deactivate(id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar un producto (solo si no tiene ventas)' })
+  @ApiResponse({ status: 200, description: 'Producto eliminado' })
+  async remove(@Param('id') id: number): Promise<void> {
+    return this.productService.remove(id);
+  }
+
 }

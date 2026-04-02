@@ -35,4 +35,7 @@ export class Product {
 
   @Column({ nullable: true })
   investor?: string;
+
+  @Column({ default: true })
+  isActive: boolean;
 }

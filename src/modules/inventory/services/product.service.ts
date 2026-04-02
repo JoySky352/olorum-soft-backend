@@ -23,10 +23,13 @@ interface PictureIndex {
 
 @Injectable()
 export class ProductService {
+  remove(id: number): void | PromiseLike<void> {
+    throw new Error('Method not implemented.');
+  }
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
-  ) {}
+  ) { }
 
   create(dto: CreateProductDto): Promise<Product> {
     const product = this.productRepository.create(dto);
@@ -43,6 +46,7 @@ export class ProductService {
 
     const query = this.productRepository
       .createQueryBuilder("product")
+      .where("product.isActive = :isActive", { isActive: true }) // 👈 Filtrar activos
       .orderBy("product.id", "DESC")
       .skip(offset)
       .take(limit);
@@ -123,5 +127,14 @@ export class ProductService {
       totalPrice,
       earns: totalPrice - totalCost,
     };
+  }
+
+  async deactivate(id: number): Promise<void> {
+    const product = await this.productRepository.findOne({ where: { id } });
+    if (!product) {
+      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+    }
+    product.isActive = false;
+    await this.productRepository.save(product);
   }
 }
