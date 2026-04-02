@@ -43,6 +43,7 @@ export class ProductService {
 
     const query = this.productRepository
       .createQueryBuilder("product")
+      .orderBy("product.id", "DESC")
       .skip(offset)
       .take(limit);
 
