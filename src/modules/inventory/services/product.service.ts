@@ -129,6 +129,50 @@ export class ProductService {
     };
   }
 
+  async calculateFilteredStock(dto: GetProductsDto): Promise<IReport> {
+    const { name, category, investor, skipEmpty } = dto;
+
+    console.log('Calculando stock filtrado con:', { name, category, investor, skipEmpty });
+
+    const query = this.productRepository
+      .createQueryBuilder("product")
+      .where("product.isActive = :isActive", { isActive: true });
+
+    if (name && name.trim() !== '') {
+      query.andWhere("product.name LIKE :name", { name: `%${name}%` });
+    }
+    if (category && category.trim() !== '') {
+      query.andWhere("product.category = :category", { category });
+    }
+    if (investor && investor.trim() !== '') {
+      query.andWhere("product.investor = :investor", { investor });
+    }
+    if (skipEmpty) {
+      query.andWhere("product.stock > 0");
+    }
+
+    const products = await query.getMany();
+    console.log('Productos encontrados:', products.length);
+
+    let totalCost = 0;
+    let totalPrice = 0;
+
+    for (const product of products) {
+      const stock = product.stock;
+      const cost = product.unitCost;
+      const price = product.unitPrice;
+
+      totalCost += +cost * +stock;
+      totalPrice += +price * +stock;
+    }
+
+    return {
+      totalCost: parseFloat(totalCost.toFixed(2)),
+      totalPrice: parseFloat(totalPrice.toFixed(2)),
+      earns: parseFloat((totalPrice - totalCost).toFixed(2)),
+    };
+  }
+
   async deactivate(id: number): Promise<void> {
     const product = await this.productRepository.findOne({ where: { id } });
     if (!product) {

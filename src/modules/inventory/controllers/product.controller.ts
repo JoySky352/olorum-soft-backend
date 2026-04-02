@@ -83,13 +83,14 @@ export class ProductController {
   }
 
   @Get('inventary/value')
-  @ApiOperation({ summary: 'Calcular el valor total del inventario' })
+  @ApiOperation({ summary: 'Calcular el valor total del inventario con filtros' })
   @ApiResponse({
     status: 200,
     description: 'Valores de inventario: costo, venta y ganancia',
   })
-  async getAllInventory() {
-    return this.productService.calculateAllStock()
+  async getAllInventory(@Query() dto: GetProductsDto) {
+    console.log('Filtros recibidos en backend:', dto); // Log para depurar
+    return this.productService.calculateFilteredStock(dto);
   }
 
   @Patch(':id/deactivate')
