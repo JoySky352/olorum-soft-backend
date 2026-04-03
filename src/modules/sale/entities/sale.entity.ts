@@ -21,7 +21,7 @@ export class Sale {
   createdAt: Date;
 
   @Column()
-  status: "created" | "charged" | "refunded";
+  status: "created" | "charged" | "refunded" | "partial_refund";
 
   @Column({
     name: "updated_at",

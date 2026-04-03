@@ -51,7 +51,7 @@ export class ShiftService {
             throw new BadRequestException("Este turno ya está cerrado");
         }
 
-        const ventas = shift.sales.filter(s => s.status === "charged");
+        const ventas = shift.sales.filter(s => s.status === "charged" || s.status === "partial_refund");
         const ingresosTotales = ventas.reduce((sum, s) => sum + Number(s.total), 0);
 
         shift.closedAt = new Date();
@@ -78,46 +78,58 @@ export class ShiftService {
             throw new NotFoundException("Turno no encontrado");
         }
 
-        const ventas = shift.sales.filter(s => s.status === "charged");
+        const ventas = shift.sales.filter(s => s.status === "charged" || s.status === "partial_refund");
 
-
-        const ingresosTotales = ventas
-            .filter(s => s.paymentMethod !== "Free")
-            .reduce((sum, s) => sum + Number(s.total), 0);
-
+        let ingresosTotales = 0;
         let gananciaTotal = 0;
-        for (const sale of ventas) {
-            if (sale.paymentMethod === "Free") {
-                continue;
-            }
-            for (const item of sale.items) {
-                const ingreso = Number(item.unitPrice) * Number(item.quantity);
-                const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
-                gananciaTotal += ingreso - costo;
-            }
-        }
-
         let efectivoTotal = 0;
         let transferenciaTotal = 0;
         let mixtoTotal = 0;
         let freeCostoTotal = 0;
 
         for (const sale of ventas) {
+            // Calcular el monto REAL después de devoluciones (total - devuelto)
+            const montoReal = Number(sale.total) - (sale.refunded || 0);
+
+            if (montoReal <= 0) continue;
+
+            ingresosTotales += montoReal;
+
+            // Calcular ganancia sobre el monto real
+            for (const item of sale.items) {
+                const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
+                if (cantidadNoDevuelta <= 0) continue;
+
+                const ingreso = Number(item.unitPrice) * cantidadNoDevuelta;
+                const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
+                gananciaTotal += ingreso - costo;
+            }
+
+            // Distribuir por método de pago según el monto real
             if (sale.paymentMethod === "Efectivo") {
-                efectivoTotal += Number(sale.total);
+                efectivoTotal += montoReal;
             } else if (sale.paymentMethod === "Transferencia") {
-                transferenciaTotal += Number(sale.total);
+                transferenciaTotal += montoReal;
+            } else if (sale.paymentMethod === "USD" || sale.paymentMethod === "EUR") {
+                // USD y EUR se tratan como efectivo
+                efectivoTotal += montoReal;
             } else if (sale.paymentMethod === "Mixto") {
-                if (sale.efectivoAmount && sale.efectivoAmount > 0) {
-                    efectivoTotal += Number(sale.efectivoAmount);
+                const totalOriginal = Number(sale.total);
+                const efectivoOriginal = Number(sale.efectivoAmount || 0);
+                const transferenciaOriginal = Number(sale.transferenciaAmount || 0);
+
+                if (totalOriginal > 0 && montoReal > 0) {
+                    const efectivoReal = (montoReal * efectivoOriginal) / totalOriginal;
+                    const transferenciaReal = (montoReal * transferenciaOriginal) / totalOriginal;
+                    efectivoTotal += efectivoReal;
+                    transferenciaTotal += transferenciaReal;
                 }
-                if (sale.transferenciaAmount && sale.transferenciaAmount > 0) {
-                    transferenciaTotal += Number(sale.transferenciaAmount);
-                }
-                mixtoTotal += Number(sale.total);
+                mixtoTotal += montoReal;
             } else if (sale.paymentMethod === "Free") {
                 for (const item of sale.items) {
-                    const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
+                    const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
+                    if (cantidadNoDevuelta <= 0) continue;
+                    const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
                     freeCostoTotal += costo;
                 }
             }
@@ -168,44 +180,52 @@ export class ShiftService {
         const [shifts, total] = await query.getManyAndCount();
 
         const shiftReports = shifts.map(shift => {
-            const ventas = shift.sales.filter(s => s.status === "charged");
+            const ventas = shift.sales.filter(s => s.status === "charged" || s.status === "partial_refund");
 
-            // Ingresos totales: solo ventas que NO son Free
-            const ingresosTotales = ventas
-                .filter(s => s.paymentMethod !== "Free")
-                .reduce((sum, s) => sum + Number(s.total), 0);
-
-            // Ganancia total: solo ventas pagadas (excluyendo Free)
+            let ingresosTotales = 0;
             let gananciaTotal = 0;
-            for (const sale of ventas.filter(s => s.paymentMethod !== "Free")) {
-                for (const item of sale.items) {
-                    const ingreso = Number(item.unitPrice) * Number(item.quantity);
-                    const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
-                    gananciaTotal += ingreso - costo;
-                }
-            }
-
             let efectivoTotal = 0;
             let transferenciaTotal = 0;
             let mixtoTotal = 0;
             let freeCostoTotal = 0;
 
             for (const sale of ventas) {
+                const montoReal = Number(sale.total) - (sale.refunded || 0);
+                if (montoReal <= 0) continue;
+
+                ingresosTotales += montoReal;
+
+                for (const item of sale.items) {
+                    const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
+                    if (cantidadNoDevuelta <= 0) continue;
+                    const ingreso = Number(item.unitPrice) * cantidadNoDevuelta;
+                    const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
+                    gananciaTotal += ingreso - costo;
+                }
+
                 if (sale.paymentMethod === "Efectivo") {
-                    efectivoTotal += Number(sale.total);
+                    efectivoTotal += montoReal;
                 } else if (sale.paymentMethod === "Transferencia") {
-                    transferenciaTotal += Number(sale.total);
+                    transferenciaTotal += montoReal;
+                } else if (sale.paymentMethod === "USD" || sale.paymentMethod === "EUR") {
+                    efectivoTotal += montoReal;
                 } else if (sale.paymentMethod === "Mixto") {
-                    if (sale.efectivoAmount && sale.efectivoAmount > 0) {
-                        efectivoTotal += Number(sale.efectivoAmount);
+                    const totalOriginal = Number(sale.total);
+                    const efectivoOriginal = Number(sale.efectivoAmount || 0);
+                    const transferenciaOriginal = Number(sale.transferenciaAmount || 0);
+
+                    if (totalOriginal > 0 && montoReal > 0) {
+                        const efectivoReal = (montoReal * efectivoOriginal) / totalOriginal;
+                        const transferenciaReal = (montoReal * transferenciaOriginal) / totalOriginal;
+                        efectivoTotal += efectivoReal;
+                        transferenciaTotal += transferenciaReal;
                     }
-                    if (sale.transferenciaAmount && sale.transferenciaAmount > 0) {
-                        transferenciaTotal += Number(sale.transferenciaAmount);
-                    }
-                    mixtoTotal += Number(sale.total);
+                    mixtoTotal += montoReal;
                 } else if (sale.paymentMethod === "Free") {
                     for (const item of sale.items) {
-                        const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
+                        const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
+                        if (cantidadNoDevuelta <= 0) continue;
+                        const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
                         freeCostoTotal += costo;
                     }
                 }

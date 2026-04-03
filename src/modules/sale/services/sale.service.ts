@@ -35,9 +35,11 @@ export class SaleService {
 
     if (status) {
       query.andWhere("sale.status = :status", { status });
+    } else {
+      // Por defecto, mostrar todas excepto 'created'
+      query.andWhere("sale.status != :status", { status: "created" });
     }
 
-    // Filtro por turno
     if (shiftId) {
       query.andWhere("sale.shift_id = :shiftId", { shiftId });
     }
@@ -134,78 +136,64 @@ export class SaleService {
 
     const { start, end } = normalizeDateRange(startDate, endDate);
 
-    // Query para Efectivo, Transferencia y Mixto
-    const query = this.saleRepository
+    // Obtener todas las ventas pagadas y con devolución parcial
+    const sales = await this.saleRepository
       .createQueryBuilder("sale")
-      .select("sale.paymentMethod", "paymentMethod")
-      .addSelect("SUM(sale.total)", "totalAmount")
-      .where("sale.status = :status", { status: "charged" })
-      .andWhere("sale.paymentMethod != :free", { free: "Free" });
+      .leftJoinAndSelect("sale.items", "item")
+      .leftJoinAndSelect("item.product", "product")
+      .where("sale.status IN (:...statuses)", {
+        statuses: ["charged", "partial_refund"]
+      })
+      .andWhere("sale.created_at BETWEEN :start AND :end", { start, end })
+      .getMany();
 
-    if (start && end) {
-      query.andWhere("sale.created_at BETWEEN :start AND :end", { start, end });
-    } else if (start) {
-      query.andWhere("sale.created_at >= :start", { start });
-    } else if (end) {
-      query.andWhere("sale.created_at <= :end", { end });
-    }
+    let efectivoTotal = 0;
+    let transferenciaTotal = 0;
+    let mixtoTotal = 0;
+    let freeCostoTotal = 0;
 
-    const results = (await query
-      .groupBy("sale.paymentMethod")
-      .getRawMany()) as PaymentMethodResult[];
+    for (const sale of sales) {
+      // Calcular el monto efectivo real después de devoluciones
+      const montoReal = sale.total - (sale.refunded || 0);
 
-    // Query para Free
-    const queryFree = this.saleRepository
-      .createQueryBuilder("sale")
-      .leftJoin("sale.items", "item")
-      .leftJoin("item.product", "product")
-      .select("'Free'", "paymentMethod")
-      .addSelect("SUM(item.quantity * COALESCE(product.unitCost, 0))", "totalAmount")
-      .where("sale.status = :status", { status: "charged" })
-      .andWhere("sale.paymentMethod = :free", { free: "Free" });
+      if (sale.paymentMethod === "Efectivo") {
+        efectivoTotal += montoReal;
+      } else if (sale.paymentMethod === "Transferencia") {
+        transferenciaTotal += montoReal;
+      } else if (sale.paymentMethod === "USD" || sale.paymentMethod === "EUR") {
+        // USD y EUR se tratan como efectivo
+        efectivoTotal += montoReal;
+      } else if (sale.paymentMethod === "Mixto") {
+        // Para mixto, distribuir proporcionalmente el monto real
+        const totalOriginal = sale.total;
+        const efectivoOriginal = sale.efectivoAmount || 0;
+        const transferenciaOriginal = sale.transferenciaAmount || 0;
 
-    if (start && end) {
-      queryFree.andWhere("sale.created_at BETWEEN :start AND :end", { start, end });
-    } else if (start) {
-      queryFree.andWhere("sale.created_at >= :start", { start });
-    } else if (end) {
-      queryFree.andWhere("sale.created_at <= :end", { end });
-    }
-
-    const resultFree = await queryFree.getRawOne();
-
-    const summary: Record<string, number> = {
-      efectivo: 0,
-      transferencia: 0,
-      mixto: 0,
-      free: 0,
-    };
-
-    for (const result of results) {
-      const method = (result.paymentMethod?.toLowerCase() || "otros") as string;
-      const totalAmount = Number(result.totalAmount || 0);
-
-      if (method === "efectivo") {
-        summary.efectivo += totalAmount;
-      } else if (method === "transferencia") {
-        summary.transferencia += totalAmount;
-      } else if (method === "mixto") {
-        summary.mixto += totalAmount;
+        if (totalOriginal > 0 && montoReal > 0) {
+          const efectivoReal = (montoReal * efectivoOriginal) / totalOriginal;
+          const transferenciaReal = (montoReal * transferenciaOriginal) / totalOriginal;
+          efectivoTotal += efectivoReal;
+          transferenciaTotal += transferenciaReal;
+        }
+        mixtoTotal += montoReal;
+      } else if (sale.paymentMethod === "Free") {
+        // Calcular costo de productos vendidos como Free (solo lo no devuelto)
+        for (const item of sale.items) {
+          const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
+          const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
+          freeCostoTotal += costo;
+        }
       }
     }
 
-    if (resultFree && resultFree.totalAmount) {
-      summary.free = Number(resultFree.totalAmount);
-    }
-
-    const total = summary.efectivo + summary.transferencia + summary.mixto;
+    const total = efectivoTotal + transferenciaTotal;
 
     return {
-      efectivo: summary.efectivo || 0,
-      transferencia: summary.transferencia || 0,
-      mixto: summary.mixto || 0,  // 👈 Agregar esta línea
-      free: summary.free || 0,
-      total,
+      efectivo: parseFloat(efectivoTotal.toFixed(2)),
+      transferencia: parseFloat(transferenciaTotal.toFixed(2)),
+      mixto: parseFloat(mixtoTotal.toFixed(2)),
+      free: parseFloat(freeCostoTotal.toFixed(2)),
+      total: parseFloat(total.toFixed(2)),
     };
   }
 
@@ -295,6 +283,11 @@ export class SaleService {
 
     if (status) {
       query.andWhere("sale.status = :status", { status });
+    } else {
+      // Incluir charged y partial_refund
+      query.andWhere("sale.status IN (:...statuses)", {
+        statuses: ["charged", "partial_refund"]
+      });
     }
 
     const sales = await query.getMany();
