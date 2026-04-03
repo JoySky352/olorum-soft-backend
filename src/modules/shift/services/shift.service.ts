@@ -81,16 +81,6 @@ export class ShiftService {
         const ventas = shift.sales.filter(s => s.status === "charged");
 
 
-        for (const sale of ventas) {
-            if (sale.paymentMethod === "Mixto") {
-                console.log(`  - Efectivo amount: ${sale.efectivoAmount}`);
-                console.log(`  - Transferencia amount: ${sale.transferenciaAmount}`);
-            }
-            for (const item of sale.items) {
-                console.log(`  Producto: ${item.product.name}, Cantidad: ${item.quantity}, Precio: ${item.unitPrice}, Costo: ${item.product?.unitCost}`);
-            }
-        }
-
         const ingresosTotales = ventas
             .filter(s => s.paymentMethod !== "Free")
             .reduce((sum, s) => sum + Number(s.total), 0);
@@ -98,7 +88,6 @@ export class ShiftService {
         let gananciaTotal = 0;
         for (const sale of ventas) {
             if (sale.paymentMethod === "Free") {
-                console.log(`Saltando venta Free ID: ${sale.id}`);
                 continue;
             }
             for (const item of sale.items) {
