@@ -132,8 +132,6 @@ export class ProductService {
   async calculateFilteredStock(dto: GetProductsDto): Promise<IReport> {
     const { name, category, investor, skipEmpty } = dto;
 
-    console.log('Calculando stock filtrado con:', { name, category, investor, skipEmpty });
-
     const query = this.productRepository
       .createQueryBuilder("product")
       .where("product.isActive = :isActive", { isActive: true });
@@ -152,7 +150,6 @@ export class ProductService {
     }
 
     const products = await query.getMany();
-    console.log('Productos encontrados:', products.length);
 
     let totalCost = 0;
     let totalPrice = 0;

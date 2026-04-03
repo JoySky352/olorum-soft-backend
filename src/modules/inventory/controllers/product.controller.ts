@@ -89,7 +89,6 @@ export class ProductController {
     description: 'Valores de inventario: costo, venta y ganancia',
   })
   async getAllInventory(@Query() dto: GetProductsDto) {
-    console.log('Filtros recibidos en backend:', dto); // Log para depurar
     return this.productService.calculateFilteredStock(dto);
   }
 
