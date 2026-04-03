@@ -45,9 +45,14 @@ export class CreateSaleDto {
   @Type(() => CreateSaleItemDto)
   items: CreateSaleItemDto[];
 
-  @ApiProperty({ example: "Efectivo", enum: ["Efectivo", "Transferencia", "Free", "USD", "Mixto"] })
+  @ApiProperty({ example: "Efectivo", enum: ["Efectivo", "Transferencia", "Free", "USD", "EUR", "Mixto"] })
   @IsString()
   paymentMethod: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  originalPaymentMethod?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -52,7 +52,10 @@ export class ShiftService {
         }
 
         const ventas = shift.sales.filter(s => s.status === "charged" || s.status === "partial_refund");
-        const ingresosTotales = ventas.reduce((sum, s) => sum + Number(s.total), 0);
+        const ingresosTotales = ventas.reduce((sum, s) => {
+            const montoReal = Number(s.total) - (s.refunded || 0);
+            return sum + montoReal;
+        }, 0);
 
         shift.closedAt = new Date();
         shift.closingCash = dto.closingCash;
@@ -88,36 +91,30 @@ export class ShiftService {
         let freeCostoTotal = 0;
 
         for (const sale of ventas) {
-            // Calcular el monto REAL después de devoluciones (total - devuelto)
             const montoReal = Number(sale.total) - (sale.refunded || 0);
-
             if (montoReal <= 0) continue;
 
             ingresosTotales += montoReal;
 
-            // Calcular ganancia sobre el monto real
+            // Ganancia sobre el monto real
             for (const item of sale.items) {
                 const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
                 if (cantidadNoDevuelta <= 0) continue;
-
                 const ingreso = Number(item.unitPrice) * cantidadNoDevuelta;
                 const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
                 gananciaTotal += ingreso - costo;
             }
 
-            // Distribuir por método de pago según el monto real
-            if (sale.paymentMethod === "Efectivo") {
+            // Distribución por método de pago
+            const metodo = sale.paymentMethod;
+            if (metodo === "Efectivo" || metodo === "USD" || metodo === "EUR") {
                 efectivoTotal += montoReal;
-            } else if (sale.paymentMethod === "Transferencia") {
+            } else if (metodo === "Transferencia") {
                 transferenciaTotal += montoReal;
-            } else if (sale.paymentMethod === "USD" || sale.paymentMethod === "EUR") {
-                // USD y EUR se tratan como efectivo
-                efectivoTotal += montoReal;
-            } else if (sale.paymentMethod === "Mixto") {
+            } else if (metodo === "Mixto") {
                 const totalOriginal = Number(sale.total);
                 const efectivoOriginal = Number(sale.efectivoAmount || 0);
                 const transferenciaOriginal = Number(sale.transferenciaAmount || 0);
-
                 if (totalOriginal > 0 && montoReal > 0) {
                     const efectivoReal = (montoReal * efectivoOriginal) / totalOriginal;
                     const transferenciaReal = (montoReal * transferenciaOriginal) / totalOriginal;
@@ -125,7 +122,7 @@ export class ShiftService {
                     transferenciaTotal += transferenciaReal;
                 }
                 mixtoTotal += montoReal;
-            } else if (sale.paymentMethod === "Free") {
+            } else if (metodo === "Free") {
                 for (const item of sale.items) {
                     const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
                     if (cantidadNoDevuelta <= 0) continue;
@@ -203,17 +200,15 @@ export class ShiftService {
                     gananciaTotal += ingreso - costo;
                 }
 
-                if (sale.paymentMethod === "Efectivo") {
+                const metodo = sale.paymentMethod;
+                if (metodo === "Efectivo" || metodo === "USD" || metodo === "EUR") {
                     efectivoTotal += montoReal;
-                } else if (sale.paymentMethod === "Transferencia") {
+                } else if (metodo === "Transferencia") {
                     transferenciaTotal += montoReal;
-                } else if (sale.paymentMethod === "USD" || sale.paymentMethod === "EUR") {
-                    efectivoTotal += montoReal;
-                } else if (sale.paymentMethod === "Mixto") {
+                } else if (metodo === "Mixto") {
                     const totalOriginal = Number(sale.total);
                     const efectivoOriginal = Number(sale.efectivoAmount || 0);
                     const transferenciaOriginal = Number(sale.transferenciaAmount || 0);
-
                     if (totalOriginal > 0 && montoReal > 0) {
                         const efectivoReal = (montoReal * efectivoOriginal) / totalOriginal;
                         const transferenciaReal = (montoReal * transferenciaOriginal) / totalOriginal;
@@ -221,7 +216,7 @@ export class ShiftService {
                         transferenciaTotal += transferenciaReal;
                     }
                     mixtoTotal += montoReal;
-                } else if (sale.paymentMethod === "Free") {
+                } else if (metodo === "Free") {
                     for (const item of sale.items) {
                         const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
                         if (cantidadNoDevuelta <= 0) continue;

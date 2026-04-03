@@ -30,16 +30,18 @@ export class CreateSaleService {
       );
 
     let paymentMethod = dto.paymentMethod;
+    let originalPaymentMethod = dto.paymentMethod;
 
-    // Para pagos en USD, la contabilidad se registra como Efectivo
-    if (dto.paymentMethod === "USD") {
+    if (dto.paymentMethod === "USD" || dto.paymentMethod === "EUR") {
       paymentMethod = "Efectivo";
+      originalPaymentMethod = dto.paymentMethod;
     }
 
-    // Crear la venta con los datos
     const saleData: Partial<Sale> = {
       paymentMethod: paymentMethod,
+      originalPaymentMethod: originalPaymentMethod,
       total,
+      originalTotal: total, // Guardar el total original
       createdAt: new Date(),
       refunded: 0,
       status: "created",

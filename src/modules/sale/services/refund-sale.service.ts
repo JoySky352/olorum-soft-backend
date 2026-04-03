@@ -18,7 +18,7 @@ export class RefundSaleService {
     });
 
     if (!sale) throw new NotFoundException(`Venta con ID: ${id} no encontrada`);
-    if (!["charged", "refunded", "partial_refund"].includes(sale.status))
+    if (!["charged", "partial_refund", "refunded"].includes(sale.status))
       throw new BadRequestException(
         `Venta con ID: ${id} y Estado: ${sale.status} no se puede devolver`,
       );
@@ -41,8 +41,6 @@ export class RefundSaleService {
     }
 
     let totalRefundAmount = 0;
-    let efectivoRefund = 0;
-    let transferenciaRefund = 0;
 
     const items = sale.items.map((i) => {
       const refundItem = dto.items.find(({ id }) => id === i.id);
@@ -79,41 +77,15 @@ export class RefundSaleService {
       }
     }
 
-    const total = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0,
-    );
-    const refunded = items.reduce(
-      (sum, item) => sum + item.quantityRefunded * item.unitPrice,
-      0,
-    );
-
-    // Calcular la distribución de la devolución por método de pago
-    if (sale.paymentMethod === "Efectivo") {
-      efectivoRefund = refunded;
-    } else if (sale.paymentMethod === "Transferencia") {
-      transferenciaRefund = refunded;
-    } else if (sale.paymentMethod === "Mixto") {
-      const totalOriginal = sale.total;
-      const efectivoOriginal = sale.efectivoAmount || 0;
-      const transferenciaOriginal = sale.transferenciaAmount || 0;
-
-      if (totalOriginal > 0) {
-        efectivoRefund = (refunded * efectivoOriginal) / totalOriginal;
-        transferenciaRefund = (refunded * transferenciaOriginal) / totalOriginal;
-      }
-
-      sale.efectivoAmount = (sale.efectivoAmount || 0) - efectivoRefund;
-      sale.transferenciaAmount = (sale.transferenciaAmount || 0) - transferenciaRefund;
-    }
-
-    sale.total = total;
-    sale.refunded = refunded;
+    // IMPORTANTE: NO modificar sale.total, mantener el original
+    // Solo actualizar sale.refunded y el estado
+    const newRefunded = (sale.refunded || 0) + totalRefundAmount;
+    sale.refunded = newRefunded;
 
     // Determinar el estado
-    if (total === 0) {
+    if (newRefunded >= sale.total) {
       sale.status = "refunded";
-    } else if (refunded > 0) {
+    } else if (newRefunded > 0) {
       sale.status = "partial_refund";
     }
 
@@ -121,10 +93,6 @@ export class RefundSaleService {
 
     await manager.save(sale);
 
-    return {
-      ...sale,
-      efectivoRefund,
-      transferenciaRefund,
-    };
+    return sale;
   }
 }

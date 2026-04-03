@@ -11,6 +11,9 @@ export class Sale {
   @Column({ type: "decimal", precision: 12, scale: 2 })
   total: number;
 
+  @Column({ name: "original_total", type: "decimal", precision: 12, scale: 2, nullable: true })
+  originalTotal: number;
+
   @Column({ type: "decimal", precision: 12, scale: 2 })
   refunded: number;
 
@@ -35,6 +38,9 @@ export class Sale {
 
   @Column({ name: "payment_method" })
   paymentMethod: string;
+
+  @Column({ name: "original_payment_method", nullable: true })
+  originalPaymentMethod: string;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: "user_id" })
