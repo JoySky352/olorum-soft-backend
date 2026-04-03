@@ -126,7 +126,7 @@ export class AdvancedReportService {
         const ticketPromedio = totalVentas > 0 ? ingresosTotales / totalVentas : 0;
         const productosVendidos = sales.reduce((sum, s) =>
             sum + s.items.reduce((itemSum, item) => itemSum + Number(item.quantity), 0), 0);
-        const clientesAtendidos = new Set(sales.map(s => s.userId)).size;
+        const clientesAtendidos = sales.length;
 
         return {
             totalVentas,
