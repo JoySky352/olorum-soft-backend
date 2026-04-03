@@ -1,9 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ProductService } from "src/modules/inventory/services/product.service";
-import { CreateSaleDto } from "src/modules/sale/dto/create-sale.dto";
 import { CreateSaleService } from "src/modules/sale/services/create-sale.service";
 import { UpdateSaleService } from "src/modules/sale/services/update-sale.service";
 import { EntityManager } from "typeorm";
+import { CreateSaleDto } from "src/modules/sale/dto/create-sale.dto";
 
 @Injectable()
 export class ProcessSaleService {
@@ -17,7 +17,7 @@ export class ProcessSaleService {
   ) { }
 
   async sale(dto: CreateSaleDto, userId?: number, shiftId?: number) {
-    this.logger.log(`📦 Iniciando venta - Usuario: ${userId || 'anónimo'}, Turno: ${shiftId || 'sin turno'}`);
+    this.logger.log(`📦 Iniciando venta - Usuario: ${userId || 'anónimo'}, Turno: ${shiftId || 'sin turno'}, Método: ${dto.paymentMethod}`);
 
     return this.entityManager.transaction(async (manager) => {
       const sale = await this.createSaleService.create(dto, manager, userId, shiftId);

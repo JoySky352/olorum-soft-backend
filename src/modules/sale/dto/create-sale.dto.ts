@@ -1,7 +1,27 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { CreateSaleItemDto } from "./create-sale-item.dto";
-import { IsArray, IsNotEmpty, IsString, IsOptional, IsNumber } from "class-validator";
+import { IsArray, IsNotEmpty, IsString, IsOptional, IsNumber, ValidateNested, IsObject } from "class-validator";
 import { Type } from "class-transformer";
+
+export class MixedPaymentDto {
+  @ApiProperty({ example: 100.00 })
+  @IsNumber()
+  efectivo: number;
+
+  @ApiProperty({ example: 50.00 })
+  @IsNumber()
+  transferencia: number;
+}
+
+export class USDPaymentDto {
+  @ApiProperty({ example: 1.00 })
+  @IsNumber()
+  usdAmount: number;
+
+  @ApiProperty({ example: 320.00 })
+  @IsNumber()
+  exchangeRate: number;
+}
 
 export class CreateSaleDto {
   @ApiProperty({ isArray: true, type: CreateSaleItemDto })
@@ -10,11 +30,25 @@ export class CreateSaleDto {
   @Type(() => CreateSaleItemDto)
   items: CreateSaleItemDto[];
 
-  @ApiProperty()
+  @ApiProperty({ example: "Efectivo", enum: ["Efectivo", "Transferencia", "Free", "USD", "Mixto"] })
   @IsString()
   paymentMethod: string;
 
-  @ApiPropertyOptional({ description: "ID del usuario que realiza la venta" })
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MixedPaymentDto)
+  mixedPayment?: MixedPaymentDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => USDPaymentDto)
+  usdPayment?: USDPaymentDto;
+
+  @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
   userId?: number;

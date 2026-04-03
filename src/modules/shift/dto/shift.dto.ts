@@ -71,6 +71,7 @@ export class ShiftReportDto {
     ventasPorMetodoPago: {
         efectivo: number;
         transferencia: number;
+        mixto: number;
         free: number;
     };
 }

@@ -7,6 +7,9 @@ export class PaymentMethodSummaryDto {
   @ApiProperty({ description: "Cantidad de ventas por transferencia" })
   transferencia: number;
 
+  @ApiProperty({ description: "Cantidad de ventas mixtas (efectivo + transferencia)" })
+  mixto: number;
+
   @ApiProperty({ description: "Cantidad de ventas gratuitas" })
   free: number;
 

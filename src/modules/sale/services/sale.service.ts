@@ -134,7 +134,7 @@ export class SaleService {
 
     const { start, end } = normalizeDateRange(startDate, endDate);
 
-    // Query para Efectivo y Transferencia (sumamos el total de la venta)
+    // Query para Efectivo, Transferencia y Mixto
     const query = this.saleRepository
       .createQueryBuilder("sale")
       .select("sale.paymentMethod", "paymentMethod")
@@ -154,7 +154,7 @@ export class SaleService {
       .groupBy("sale.paymentMethod")
       .getRawMany()) as PaymentMethodResult[];
 
-    // Query para Free - sumamos el COSTO de los productos (para control interno)
+    // Query para Free
     const queryFree = this.saleRepository
       .createQueryBuilder("sale")
       .leftJoin("sale.items", "item")
@@ -177,10 +177,10 @@ export class SaleService {
     const summary: Record<string, number> = {
       efectivo: 0,
       transferencia: 0,
+      mixto: 0,
       free: 0,
     };
 
-    // Procesar resultados de Efectivo y Transferencia
     for (const result of results) {
       const method = (result.paymentMethod?.toLowerCase() || "otros") as string;
       const totalAmount = Number(result.totalAmount || 0);
@@ -189,20 +189,21 @@ export class SaleService {
         summary.efectivo += totalAmount;
       } else if (method === "transferencia") {
         summary.transferencia += totalAmount;
+      } else if (method === "mixto") {
+        summary.mixto += totalAmount;
       }
     }
 
-    // Procesar resultado de Free - suma del costo
     if (resultFree && resultFree.totalAmount) {
       summary.free = Number(resultFree.totalAmount);
     }
 
-    // TOTAL = solo efectivo + transferencia (sin incluir free)
-    const total = summary.efectivo + summary.transferencia;
+    const total = summary.efectivo + summary.transferencia + summary.mixto;
 
     return {
       efectivo: summary.efectivo || 0,
       transferencia: summary.transferencia || 0,
+      mixto: summary.mixto || 0,  // 👈 Agregar esta línea
       free: summary.free || 0,
       total,
     };
@@ -300,6 +301,7 @@ export class SaleService {
 
     const totalVentas = sales.length;
 
+    // Ingresos totales (excluyendo Free)
     const ingresosTotales = sales
       .filter(s => s.paymentMethod !== "Free")
       .reduce((acc, s) => acc + Number(s.total), 0);

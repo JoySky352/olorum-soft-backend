@@ -36,6 +36,12 @@ export class Sale {
   @Column({ name: "payment_method" })
   paymentMethod: string;
 
+  @Column({ name: "efectivo_amount", type: "decimal", precision: 12, scale: 2, nullable: true })
+  efectivoAmount: number;
+
+  @Column({ name: "transferencia_amount", type: "decimal", precision: 12, scale: 2, nullable: true })
+  transferenciaAmount: number;
+
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: "user_id" })
   user: User;

@@ -91,9 +91,10 @@ export class ShiftService {
             }, 0);
         }, 0);
 
-        // Calcular correctamente: efectivo y transferencia suman montos, free suma costo
+        // Inicializar variables
         let efectivoTotal = 0;
         let transferenciaTotal = 0;
+        let mixtoTotal = 0;
         let freeCostoTotal = 0;
 
         for (const sale of ventas) {
@@ -101,8 +102,17 @@ export class ShiftService {
                 efectivoTotal += Number(sale.total);
             } else if (sale.paymentMethod === "Transferencia") {
                 transferenciaTotal += Number(sale.total);
+            } else if (sale.paymentMethod === "Mixto") {
+                // Para ventas mixtas, sumamos el total (ya está en ingresosTotales)
+                // Pero para el desglose, usamos los campos individuales
+                if (sale.efectivoAmount) {
+                    efectivoTotal += Number(sale.efectivoAmount);
+                }
+                if (sale.transferenciaAmount) {
+                    transferenciaTotal += Number(sale.transferenciaAmount);
+                }
+                mixtoTotal += Number(sale.total); // Mantener el total mixto para referencia
             } else if (sale.paymentMethod === "Free") {
-                // Sumar el costo de los productos para Free
                 for (const item of sale.items) {
                     const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
                     freeCostoTotal += costo;
@@ -124,7 +134,8 @@ export class ShiftService {
             ventasPorMetodoPago: {
                 efectivo: parseFloat(efectivoTotal.toFixed(2)),
                 transferencia: parseFloat(transferenciaTotal.toFixed(2)),
-                free: parseFloat(freeCostoTotal.toFixed(2)), // Aquí va el costo, no la cantidad
+                mixto: parseFloat(mixtoTotal.toFixed(2)),
+                free: parseFloat(freeCostoTotal.toFixed(2)),
             },
         };
     }
@@ -164,6 +175,26 @@ export class ShiftService {
                 }, 0);
             }, 0);
 
+            let efectivoTotal = 0;
+            let transferenciaTotal = 0;
+            let mixtoTotal = 0;
+            let freeCostoTotal = 0;
+
+            for (const sale of ventas) {
+                if (sale.paymentMethod === "Efectivo") {
+                    efectivoTotal += Number(sale.total);
+                } else if (sale.paymentMethod === "Transferencia") {
+                    transferenciaTotal += Number(sale.total);
+                } else if (sale.paymentMethod === "Mixto") {
+                    mixtoTotal += Number(sale.total);
+                } else if (sale.paymentMethod === "Free") {
+                    for (const item of sale.items) {
+                        const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
+                        freeCostoTotal += costo;
+                    }
+                }
+            }
+
             return {
                 id: shift.id,
                 userName: shift.userName,
@@ -176,15 +207,11 @@ export class ShiftService {
                 ingresosTotales: parseFloat(ingresosTotales.toFixed(2)),
                 gananciaTotal: parseFloat(gananciaTotal.toFixed(2)),
                 ventasPorMetodoPago: {
-                    efectivo: ventas.filter(s => s.paymentMethod === "Efectivo").reduce((sum, s) => sum + Number(s.total), 0),
-                    transferencia: ventas.filter(s => s.paymentMethod === "Transferencia").reduce((sum, s) => sum + Number(s.total), 0),
-                    free: ventas.filter(s => s.paymentMethod === "Free").reduce((sum, s) => {
-                        // Sumar costo de los productos para ventas Free
-                        return sum + s.items.reduce((itemSum, item) => {
-                            return itemSum + (Number(item.product?.unitCost || 0) * Number(item.quantity));
-                        }, 0);
-                    }, 0),
-                }
+                    efectivo: parseFloat(efectivoTotal.toFixed(2)),
+                    transferencia: parseFloat(transferenciaTotal.toFixed(2)),
+                    mixto: parseFloat(mixtoTotal.toFixed(2)),
+                    free: parseFloat(freeCostoTotal.toFixed(2)),
+                },
             };
         });
 
