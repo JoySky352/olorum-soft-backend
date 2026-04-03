@@ -47,14 +47,18 @@ export class CreateSaleService {
       saleData.shiftId = shiftId;
     }
 
-    // Guardar desglose para pago mixto
-    if (dto.paymentMethod === "Mixto" && dto.mixedPayment) {
-      saleData.efectivoAmount = dto.mixedPayment.efectivo;
-      saleData.transferenciaAmount = dto.mixedPayment.transferencia;
-      console.log('Guardando pago mixto:', {
-        efectivo: dto.mixedPayment.efectivo,
-        transferencia: dto.mixedPayment.transferencia
+    // Guardar desglose para pago en USD (opcional, para registro)
+    if (dto.paymentMethod === "USD" && dto.usdPayment) {
+      // La venta se guarda como Efectivo, pero podemos guardar metadata
+      console.log('Pago en USD:', {
+        usdAmount: dto.usdPayment.usdAmount,
+        exchangeRate: dto.usdPayment.exchangeRate,
+        cupAmount: dto.usdPayment.cupAmount,
+        usdReceived: dto.usdPayment.usdReceived,
+        changeInCUP: dto.usdPayment.changeInCUP
       });
+      // La venta se registra como Efectivo para la contabilidad
+      saleData.paymentMethod = "Efectivo";
     }
 
     const sale = manager.create(Sale, saleData);

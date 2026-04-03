@@ -21,6 +21,21 @@ export class USDPaymentDto {
   @ApiProperty({ example: 320.00 })
   @IsNumber()
   exchangeRate: number;
+
+  @ApiPropertyOptional({ example: 320.00 })
+  @IsOptional()
+  @IsNumber()
+  cupAmount?: number;
+
+  @ApiPropertyOptional({ example: 2.00 })
+  @IsOptional()
+  @IsNumber()
+  usdReceived?: number;
+
+  @ApiPropertyOptional({ example: 320.00 })
+  @IsOptional()
+  @IsNumber()
+  changeInCUP?: number;
 }
 
 export class CreateSaleDto {
