@@ -16,12 +16,17 @@ export class CreateSaleService {
   ) { }
 
   async create(dto: CreateSaleDto, manager: EntityManager, userId?: number, shiftId?: number) {
-    const total = dto.paymentMethod === "Free"
-      ? 0
-      : dto.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-
+    const total =
+      dto.paymentMethod === "Free"
+        ? 0
+        : dto.items.reduce(
+          (sum, item) => sum + item.quantity * item.unitPrice,
+          0,
+        );
     if (total <= 0 && dto.paymentMethod !== "Free")
-      throw new BadRequestException("El total de la venta debe ser mayor que 0");
+      throw new BadRequestException(
+        "El total de la venta debe ser mayor que 0",
+      );
 
     // Crear la venta con los datos
     const saleData: Partial<Sale> = {
@@ -32,10 +37,12 @@ export class CreateSaleService {
       status: "created",
     };
 
+    // Asignar userId solo si existe
     if (userId) {
       saleData.userId = userId;
     }
 
+    // Asignar shiftId solo si existe
     if (shiftId) {
       saleData.shiftId = shiftId;
     }
@@ -44,6 +51,10 @@ export class CreateSaleService {
     if (dto.paymentMethod === "Mixto" && dto.mixedPayment) {
       saleData.efectivoAmount = dto.mixedPayment.efectivo;
       saleData.transferenciaAmount = dto.mixedPayment.transferencia;
+      console.log('Guardando pago mixto:', {
+        efectivo: dto.mixedPayment.efectivo,
+        transferencia: dto.mixedPayment.transferencia
+      });
     }
 
     const sale = manager.create(Sale, saleData);
@@ -51,8 +62,9 @@ export class CreateSaleService {
 
     await Promise.all(
       dto.items.map((item) => {
-        const itemTotal = dto.paymentMethod === "Free" ? 0 : item.unitPrice * item.quantity;
-        if (itemTotal <= 0 && dto.paymentMethod !== "Free")
+        const total =
+          dto.paymentMethod === "Free" ? 0 : item.unitPrice * item.quantity;
+        if (total <= 0 && dto.paymentMethod !== "Free")
           return Promise.reject(
             new Error(`Total del producto con ID: ${item.productId} inválido`),
           );
@@ -63,7 +75,7 @@ export class CreateSaleService {
           unitPrice: item.unitPrice,
           quantityRefunded: 0,
           refunded: 0,
-          total: itemTotal,
+          total,
         });
         return manager.save(invoiceItem);
       }),
