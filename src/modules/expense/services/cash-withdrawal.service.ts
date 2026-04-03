@@ -66,4 +66,15 @@ export class CashWithdrawalService {
 
         return Number(result?.total || 0);
     }
+
+    async getTotalByShiftAndUser(shiftId: number, userId: number): Promise<number> {
+        const result = await this.withdrawalRepository
+            .createQueryBuilder("withdrawal")
+            .select("SUM(withdrawal.amount)", "total")
+            .where("withdrawal.shift_id = :shiftId", { shiftId })
+            .andWhere("withdrawal.user_id = :userId", { userId })
+            .getRawOne();
+
+        return Number(result?.total || 0);
+    }
 }
