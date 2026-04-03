@@ -29,45 +29,26 @@ export class AdvancedReportService {
     async getAdvancedReport(dto: GetAdvancedReportDto): Promise<AdvancedReportResponseDto> {
         const { startDate, endDate, userId } = dto;
 
-        console.log('=== ADVANCED REPORT ===');
-        console.log('Filtros recibidos en backend:', { startDate, endDate, userId });
-
-        // Definir rango de fechas
-        let start: Date;
-        let end: Date;
-
-        if (startDate && endDate) {
-            start = new Date(startDate);
-            end = new Date(endDate);
-        } else {
-            start = new Date(new Date().setDate(1));
-            end = new Date();
-        }
-
+        const start = startDate ? new Date(startDate) : new Date(new Date().setDate(1));
+        const end = endDate ? new Date(endDate) : new Date();
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
 
-        // Obtener turnos en el rango
-        const shifts = await this.shiftRepository
-            .createQueryBuilder("shift")
-            .where("shift.opened_at BETWEEN :start AND :end", { start, end })
-            .getMany();
-
-        const shiftIds = shifts.map(s => s.id);
-
-        // Obtener ventas de los turnos
-        const salesQuery = this.saleRepository
+        // Construir query de ventas
+        const query = this.saleRepository
             .createQueryBuilder("sale")
             .leftJoinAndSelect("sale.items", "item")
             .leftJoinAndSelect("item.product", "product")
             .leftJoinAndSelect("sale.user", "user")
-            .where("sale.status = :status", { status: "charged" });
+            .where("sale.status = :status", { status: "charged" })
+            .andWhere("sale.created_at BETWEEN :start AND :end", { start, end });
 
-        if (shiftIds.length > 0) {
-            salesQuery.andWhere("sale.shift_id IN (:...shiftIds)", { shiftIds });
+        // Filtrar por usuario si se especifica
+        if (userId) {
+            query.andWhere("sale.user_id = :userId", { userId });
         }
 
-        const sales = await salesQuery.getMany();
+        const sales = await query.getMany();
 
         // Dashboard stats
         const dashboard = await this.calculateDashboardStats(sales, start, end);
