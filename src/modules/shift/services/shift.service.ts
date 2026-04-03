@@ -97,15 +97,12 @@ export class ShiftService {
         let freeCostoTotal = 0;
 
         for (const sale of ventas) {
-            console.log(`Procesando venta: ${sale.id}, método: ${sale.paymentMethod}, total: ${sale.total}`);
-            console.log(`Efectivo amount: ${sale.efectivoAmount}, Transferencia amount: ${sale.transferenciaAmount}`);
-
             if (sale.paymentMethod === "Efectivo") {
                 efectivoTotal += Number(sale.total);
             } else if (sale.paymentMethod === "Transferencia") {
                 transferenciaTotal += Number(sale.total);
             } else if (sale.paymentMethod === "Mixto") {
-                // Sumar los montos individuales
+                // Para ventas mixtas, sumamos los montos individuales
                 if (sale.efectivoAmount && sale.efectivoAmount > 0) {
                     efectivoTotal += Number(sale.efectivoAmount);
                 }
@@ -120,8 +117,6 @@ export class ShiftService {
                 }
             }
         }
-
-        console.log('Resultados:', { efectivoTotal, transferenciaTotal, mixtoTotal, freeCostoTotal });
 
         return {
             id: shift.id,
@@ -189,6 +184,12 @@ export class ShiftService {
                 } else if (sale.paymentMethod === "Transferencia") {
                     transferenciaTotal += Number(sale.total);
                 } else if (sale.paymentMethod === "Mixto") {
+                    if (sale.efectivoAmount && sale.efectivoAmount > 0) {
+                        efectivoTotal += Number(sale.efectivoAmount);
+                    }
+                    if (sale.transferenciaAmount && sale.transferenciaAmount > 0) {
+                        transferenciaTotal += Number(sale.transferenciaAmount);
+                    }
                     mixtoTotal += Number(sale.total);
                 } else if (sale.paymentMethod === "Free") {
                     for (const item of sale.items) {
