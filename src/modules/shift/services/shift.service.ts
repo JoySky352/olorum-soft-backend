@@ -18,7 +18,6 @@ export class ShiftService {
     ) { }
 
     async openShift(userId: number, userName: string, dto: OpenShiftDto): Promise<Shift> {
-        // Verificar si el usuario tiene un turno abierto
         const openShift = await this.shiftRepository.findOne({
             where: { userId, status: "open" },
         });
@@ -52,7 +51,6 @@ export class ShiftService {
             throw new BadRequestException("Este turno ya está cerrado");
         }
 
-        // Calcular total de ventas del turno
         const ventas = shift.sales.filter(s => s.status === "charged");
         const ingresosTotales = ventas.reduce((sum, s) => sum + Number(s.total), 0);
 
@@ -81,15 +79,34 @@ export class ShiftService {
         }
 
         const ventas = shift.sales.filter(s => s.status === "charged");
-        const ingresosTotales = ventas.reduce((sum, s) => sum + Number(s.total), 0);
 
-        const gananciaTotal = ventas.reduce((acc, s) => {
-            return acc + s.items.reduce((sum, item) => {
+
+        for (const sale of ventas) {
+            if (sale.paymentMethod === "Mixto") {
+                console.log(`  - Efectivo amount: ${sale.efectivoAmount}`);
+                console.log(`  - Transferencia amount: ${sale.transferenciaAmount}`);
+            }
+            for (const item of sale.items) {
+                console.log(`  Producto: ${item.product.name}, Cantidad: ${item.quantity}, Precio: ${item.unitPrice}, Costo: ${item.product?.unitCost}`);
+            }
+        }
+
+        const ingresosTotales = ventas
+            .filter(s => s.paymentMethod !== "Free")
+            .reduce((sum, s) => sum + Number(s.total), 0);
+
+        let gananciaTotal = 0;
+        for (const sale of ventas) {
+            if (sale.paymentMethod === "Free") {
+                console.log(`Saltando venta Free ID: ${sale.id}`);
+                continue;
+            }
+            for (const item of sale.items) {
                 const ingreso = Number(item.unitPrice) * Number(item.quantity);
                 const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
-                return sum + (ingreso - costo);
-            }, 0);
-        }, 0);
+                gananciaTotal += ingreso - costo;
+            }
+        }
 
         let efectivoTotal = 0;
         let transferenciaTotal = 0;
@@ -102,7 +119,6 @@ export class ShiftService {
             } else if (sale.paymentMethod === "Transferencia") {
                 transferenciaTotal += Number(sale.total);
             } else if (sale.paymentMethod === "Mixto") {
-                // Para ventas mixtas, sumamos los montos individuales
                 if (sale.efectivoAmount && sale.efectivoAmount > 0) {
                     efectivoTotal += Number(sale.efectivoAmount);
                 }
@@ -164,14 +180,21 @@ export class ShiftService {
 
         const shiftReports = shifts.map(shift => {
             const ventas = shift.sales.filter(s => s.status === "charged");
-            const ingresosTotales = ventas.reduce((sum, s) => sum + Number(s.total), 0);
-            const gananciaTotal = ventas.reduce((acc, s) => {
-                return acc + s.items.reduce((sum, item) => {
+
+            // Ingresos totales: solo ventas que NO son Free
+            const ingresosTotales = ventas
+                .filter(s => s.paymentMethod !== "Free")
+                .reduce((sum, s) => sum + Number(s.total), 0);
+
+            // Ganancia total: solo ventas pagadas (excluyendo Free)
+            let gananciaTotal = 0;
+            for (const sale of ventas.filter(s => s.paymentMethod !== "Free")) {
+                for (const item of sale.items) {
                     const ingreso = Number(item.unitPrice) * Number(item.quantity);
                     const costo = Number(item.product?.unitCost || 0) * Number(item.quantity);
-                    return sum + (ingreso - costo);
-                }, 0);
-            }, 0);
+                    gananciaTotal += ingreso - costo;
+                }
+            }
 
             let efectivoTotal = 0;
             let transferenciaTotal = 0;

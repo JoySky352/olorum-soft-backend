@@ -16,8 +16,6 @@ export class CreateSaleService {
   ) { }
 
   async create(dto: CreateSaleDto, manager: EntityManager, userId?: number, shiftId?: number) {
-    console.log('=== CREATE SALE SERVICE ===');
-    console.log('DTO recibido:', JSON.stringify(dto, null, 2));
 
     const total =
       dto.paymentMethod === "Free"
@@ -58,7 +56,6 @@ export class CreateSaleService {
     // IMPORTANTE: Guardar desglose para pago mixto
     // Verificar si dto.mixedPayment existe
     if (dto.mixedPayment) {
-      console.log('🔴 Procesando mixedPayment:', dto.mixedPayment);
       saleData.efectivoAmount = dto.mixedPayment.efectivo;
       saleData.transferenciaAmount = dto.mixedPayment.transferencia;
     } else {
@@ -67,7 +64,6 @@ export class CreateSaleService {
 
     const sale = manager.create(Sale, saleData);
     await manager.save(sale);
-    console.log('✅ Venta guardada con efectivoAmount:', sale.efectivoAmount, 'transferenciaAmount:', sale.transferenciaAmount);
 
     await Promise.all(
       dto.items.map((item) => {
