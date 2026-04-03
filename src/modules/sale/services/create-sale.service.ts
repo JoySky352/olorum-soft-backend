@@ -16,6 +16,9 @@ export class CreateSaleService {
   ) { }
 
   async create(dto: CreateSaleDto, manager: EntityManager, userId?: number, shiftId?: number) {
+    console.log('=== CREATE SALE SERVICE ===');
+    console.log('DTO recibido:', JSON.stringify(dto, null, 2));
+
     const total =
       dto.paymentMethod === "Free"
         ? 0
@@ -28,47 +31,48 @@ export class CreateSaleService {
         "El total de la venta debe ser mayor que 0",
       );
 
+    let paymentMethod = dto.paymentMethod;
+
+    // Para pagos en USD, la contabilidad se registra como Efectivo
+    if (dto.paymentMethod === "USD") {
+      paymentMethod = "Efectivo";
+    }
+
     // Crear la venta con los datos
     const saleData: Partial<Sale> = {
-      paymentMethod: dto.paymentMethod,
+      paymentMethod: paymentMethod,
       total,
       createdAt: new Date(),
       refunded: 0,
       status: "created",
     };
 
-    // Asignar userId solo si existe
     if (userId) {
       saleData.userId = userId;
     }
 
-    // Asignar shiftId solo si existe
     if (shiftId) {
       saleData.shiftId = shiftId;
     }
 
-    // Guardar desglose para pago en USD (opcional, para registro)
-    if (dto.paymentMethod === "USD" && dto.usdPayment) {
-      // La venta se guarda como Efectivo, pero podemos guardar metadata
-      console.log('Pago en USD:', {
-        usdAmount: dto.usdPayment.usdAmount,
-        exchangeRate: dto.usdPayment.exchangeRate,
-        cupAmount: dto.usdPayment.cupAmount,
-        usdReceived: dto.usdPayment.usdReceived,
-        changeInCUP: dto.usdPayment.changeInCUP
-      });
-      // La venta se registra como Efectivo para la contabilidad
-      saleData.paymentMethod = "Efectivo";
+    // IMPORTANTE: Guardar desglose para pago mixto
+    // Verificar si dto.mixedPayment existe
+    if (dto.mixedPayment) {
+      console.log('🔴 Procesando mixedPayment:', dto.mixedPayment);
+      saleData.efectivoAmount = dto.mixedPayment.efectivo;
+      saleData.transferenciaAmount = dto.mixedPayment.transferencia;
+    } else {
+      console.log('⚠️ No hay mixedPayment en el DTO');
     }
 
     const sale = manager.create(Sale, saleData);
     await manager.save(sale);
+    console.log('✅ Venta guardada con efectivoAmount:', sale.efectivoAmount, 'transferenciaAmount:', sale.transferenciaAmount);
 
     await Promise.all(
       dto.items.map((item) => {
-        const total =
-          dto.paymentMethod === "Free" ? 0 : item.unitPrice * item.quantity;
-        if (total <= 0 && dto.paymentMethod !== "Free")
+        const itemTotal = dto.paymentMethod === "Free" ? 0 : item.unitPrice * item.quantity;
+        if (itemTotal <= 0 && dto.paymentMethod !== "Free")
           return Promise.reject(
             new Error(`Total del producto con ID: ${item.productId} inválido`),
           );
@@ -79,7 +83,7 @@ export class CreateSaleService {
           unitPrice: item.unitPrice,
           quantityRefunded: 0,
           refunded: 0,
-          total,
+          total: itemTotal,
         });
         return manager.save(invoiceItem);
       }),

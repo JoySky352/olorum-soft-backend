@@ -50,10 +50,9 @@ export class Sale {
   @Column({ name: "shift_id", nullable: true })
   shiftId: number;
 
-  // 👈 Agregar estas columnas si no existen
-  @Column({ name: "efectivo_amount", type: "decimal", precision: 12, scale: 2, nullable: true, default: 0 })
+  @Column({ name: "efectivo_amount", type: "decimal", precision: 12, scale: 2, nullable: true })
   efectivoAmount: number;
 
-  @Column({ name: "transferencia_amount", type: "decimal", precision: 12, scale: 2, nullable: true, default: 0 })
+  @Column({ name: "transferencia_amount", type: "decimal", precision: 12, scale: 2, nullable: true })
   transferenciaAmount: number;
 }
