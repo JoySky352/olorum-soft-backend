@@ -19,7 +19,6 @@ import { SaleService } from "../services/sale.service";
 export class SaleController {
   constructor(
     private readonly saleService: SaleService,
-    // Eliminar CreateSaleService
   ) { }
 
   @Get()
@@ -32,19 +31,15 @@ export class SaleController {
     @Query() dto: GetSalesDto
   ): Promise<PaginatedResponseDto<Sale>> {
     try {
-      return await this.saleService.findAll(dto);
+      // Forzar paginación "infinita": limit muy alto para obtener todas las ventas
+      const allSalesDto = { ...dto, limit: 1000000, offset: 0 };
+      return await this.saleService.findAll(allSalesDto);
     } catch (error) {
       throw new InternalServerErrorException(
         (error as Error).message || "Error al obtener ventas"
       );
     }
   }
-
-  // ELIMINAR COMPLETAMENTE este método:
-  // @Post()
-  // @UseGuards(JwtAuthGuard)
-  // @ApiBearerAuth()
-  // async crearVenta(@Body() dto: CreateSaleDto, @Request() req) { ... }
 
   @Get("resumen/metodos-pago")
   @ApiOperation({
