@@ -59,7 +59,9 @@ export class ProductController {
   @ApiResponse({ status: 200, description: 'Lista paginada y filtrada de productos' })
   async obtenerTodos(@Query() dto: GetProductsDto): Promise<PaginatedResponseDto<Product>> {
     try {
-      return await this.productService.findAll(dto);
+      // Forzar paginación "infinita": limit muy alto para obtener todos
+      const allProductsDto = { ...dto, limit: 1000000, offset: 0 };
+      return await this.productService.findAll(allProductsDto);
     } catch (error) {
       throw new InternalServerErrorException('Error al obtener productos');
     }
