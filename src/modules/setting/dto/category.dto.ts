@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsString, IsOptional, IsBoolean } from "class-validator";
+import { IsString, IsOptional, IsBoolean, IsNumber } from "class-validator";
 
 export class CreateCategoryDto {
     @ApiProperty({ example: "Alimentos" })
@@ -10,6 +10,11 @@ export class CreateCategoryDto {
     @IsOptional()
     @IsString()
     description?: string;
+
+    @ApiPropertyOptional({ example: 5 })
+    @IsOptional()
+    @IsNumber()
+    lowStockThreshold?: number;
 }
 
 export class UpdateCategoryDto {
@@ -27,4 +32,9 @@ export class UpdateCategoryDto {
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
+
+    @ApiPropertyOptional({ example: 10 })
+    @IsOptional()
+    @IsNumber()
+    lowStockThreshold?: number;
 }

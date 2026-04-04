@@ -24,7 +24,7 @@ interface PictureIndex {
 @Injectable()
 export class ProductService {
   remove(id: number): void | PromiseLike<void> {
-    throw new Error('Method not implemented.');
+    return this.deactivate(id);
   }
   constructor(
     @InjectRepository(Product)

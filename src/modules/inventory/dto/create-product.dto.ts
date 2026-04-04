@@ -5,6 +5,7 @@ import {
   IsPositive,
   IsString,
   IsOptional,
+  IsDateString,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -50,4 +51,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   investor?: string;
+
+  // NUEVO
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
 }

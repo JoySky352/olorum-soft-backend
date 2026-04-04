@@ -8,7 +8,7 @@ export class Product {
   @Column({ length: 100, unique: true })
   name: string;
 
-  @Column({ length: 100, nullable: true }) // 👈 Cambiar a nullable: true
+  @Column({ length: 100, nullable: true })
   description: string;
 
   @Column({ nullable: true })
@@ -38,4 +38,8 @@ export class Product {
 
   @Column({ default: true })
   isActive: boolean;
+
+  // NUEVO CAMPO
+  @Column({ type: 'date', nullable: true })
+  expiryDate?: Date;
 }

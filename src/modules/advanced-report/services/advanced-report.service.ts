@@ -7,7 +7,22 @@ import { Product } from "../../inventory/entities/product.entity";
 import { Shift } from "../../shift/entities/shift.entity";
 import { Expense } from "../../expense/entities/expense.entity";
 import { CashWithdrawal } from "../../expense/entities/cash-withdrawal.entity";
-import { GetAdvancedReportDto, AdvancedReportResponseDto, DashboardStatsDto, TopProductDto, LowStockProductDto, SalesByHourDto, DailySalesDto, PaymentMethodReportDto, CategorySalesDto, ProviderSalesDto, UserPerformanceDto } from "../dto/advanced-report.dto";
+import { Category } from "../../setting/entities/category.entity";
+import {
+    GetAdvancedReportDto,
+    AdvancedReportResponseDto,
+    DashboardStatsDto,
+    TopProductDto,
+    LowStockProductDto,
+    SalesByHourDto,
+    DailySalesDto,
+    PaymentMethodReportDto,
+    CategorySalesDto,
+    ProviderSalesDto,
+    UserPerformanceDto,
+    PopularLowStockProductDto,
+    ExpiringProductDto,
+} from "../dto/advanced-report.dto";
 
 @Injectable()
 export class AdvancedReportService {
@@ -24,6 +39,8 @@ export class AdvancedReportService {
         private expenseRepository: Repository<Expense>,
         @InjectRepository(CashWithdrawal)
         private withdrawalRepository: Repository<CashWithdrawal>,
+        @InjectRepository(Category)
+        private categoryRepository: Repository<Category>,
     ) { }
 
     async getAdvancedReport(dto: GetAdvancedReportDto): Promise<AdvancedReportResponseDto> {
@@ -43,7 +60,6 @@ export class AdvancedReportService {
             .where("sale.status = :status", { status: "charged" })
             .andWhere("sale.created_at BETWEEN :start AND :end", { start, end });
 
-        // Filtrar por usuario si se especifica
         if (userId) {
             query.andWhere("sale.user_id = :userId", { userId });
         }
@@ -56,8 +72,14 @@ export class AdvancedReportService {
         // Top productos más vendidos
         const topProducts = await this.getTopProducts(sales);
 
-        // Productos con stock bajo
+        // Productos con stock bajo (modificado para usar umbral por categoría)
         const lowStockProducts = await this.getLowStockProducts();
+
+        // NUEVO: Productos populares con stock bajo
+        const popularLowStockProducts = await this.getPopularLowStockProducts(sales);
+
+        // NUEVO: Productos próximos a vencer en el mes actual
+        const expiringProducts = await this.getExpiringProducts();
 
         // Ventas por hora
         const salesByHour = this.getSalesByHour(sales);
@@ -91,8 +113,12 @@ export class AdvancedReportService {
             salesByCategory,
             salesByProvider,
             userPerformance,
+            popularLowStockProducts,
+            expiringProducts,
         };
     }
+
+    // ========== MÉTODOS EXISTENTES (copiados de tu archivo original) ==========
 
     private async calculateDashboardStats(sales: Sale[], startDate: Date, endDate: Date): Promise<DashboardStatsDto> {
         const ingresosTotales = sales.reduce((sum, s) => sum + Number(s.total), 0);
@@ -178,19 +204,33 @@ export class AdvancedReportService {
     private async getLowStockProducts(): Promise<LowStockProductDto[]> {
         const products = await this.productRepository
             .createQueryBuilder("product")
-            .where("product.stock < 10")
-            .andWhere("product.isActive = :isActive", { isActive: true })
-            .orderBy("product.stock", "ASC")
-            .limit(20)
+            .where("product.isActive = :isActive", { isActive: true })
             .getMany();
 
-        return products.map(p => ({
-            productId: p.id,
-            productName: p.name,
-            stock: p.stock,
-            unitPrice: p.unitPrice,
-            category: p.category || "Sin categoría",
-        }));
+        // Obtener todas las categorías con su umbral
+        const categories = await this.categoryRepository.find();
+        const categoryThresholdMap = new Map<string, number>();
+        for (const cat of categories) {
+            if (cat.lowStockThreshold !== null && cat.lowStockThreshold !== undefined) {
+                categoryThresholdMap.set(cat.name, cat.lowStockThreshold);
+            }
+        }
+        const DEFAULT_THRESHOLD = 10;
+
+        const lowStock: LowStockProductDto[] = [];
+        for (const product of products) {
+            const threshold = categoryThresholdMap.get(product.category || '') ?? DEFAULT_THRESHOLD;
+            if (product.stock < threshold) {
+                lowStock.push({
+                    productId: product.id,
+                    productName: product.name,
+                    stock: product.stock,
+                    unitPrice: product.unitPrice,
+                    category: product.category || "Sin categoría",
+                });
+            }
+        }
+        return lowStock.sort((a, b) => a.stock - b.stock).slice(0, 20);
     }
 
     private getSalesByHour(sales: Sale[]): SalesByHourDto[] {
@@ -350,5 +390,101 @@ export class AdvancedReportService {
             gananciaTotal: parseFloat(data.ganancia.toFixed(2)),
             ticketPromedio: data.totalVentas > 0 ? data.ingresos / data.totalVentas : 0,
         })).sort((a, b) => b.ingresosTotales - a.ingresosTotales);
+    }
+
+    // ========== NUEVOS MÉTODOS (sin dayjs, usando JavaScript nativo) ==========
+
+    private async getPopularLowStockProducts(sales: Sale[]): Promise<PopularLowStockProductDto[]> {
+        // Obtener top 10 productos más vendidos (por cantidad, sin considerar devoluciones)
+        const productSalesMap = new Map<number, { name: string; quantity: number; category: string }>();
+        for (const sale of sales) {
+            for (const item of sale.items) {
+                const existing = productSalesMap.get(item.productId);
+                if (existing) {
+                    existing.quantity += Number(item.quantity);
+                } else {
+                    productSalesMap.set(item.productId, {
+                        name: item.product.name,
+                        quantity: Number(item.quantity),
+                        category: item.product.category || "Sin categoría",
+                    });
+                }
+            }
+        }
+        const topProducts = Array.from(productSalesMap.entries())
+            .map(([id, data]) => ({ id, ...data }))
+            .sort((a, b) => b.quantity - a.quantity)
+            .slice(0, 10);
+
+        // Obtener umbrales por categoría
+        const categories = await this.categoryRepository.find();
+        const categoryThresholdMap = new Map<string, number>();
+        for (const cat of categories) {
+            if (cat.lowStockThreshold !== null && cat.lowStockThreshold !== undefined) {
+                categoryThresholdMap.set(cat.name, cat.lowStockThreshold);
+            }
+        }
+        const DEFAULT_THRESHOLD = 10;
+
+        // Filtrar los que tienen stock bajo
+        const popularLowStock: PopularLowStockProductDto[] = [];
+        for (const prod of topProducts) {
+            const productEntity = await this.productRepository.findOne({ where: { id: prod.id } });
+            if (!productEntity) continue;
+            const threshold = categoryThresholdMap.get(prod.category) ?? DEFAULT_THRESHOLD;
+            if (productEntity.stock <= threshold) {
+                popularLowStock.push({
+                    productId: prod.id,
+                    productName: prod.name,
+                    quantitySold: prod.quantity,
+                    stock: productEntity.stock,
+                    threshold: threshold,
+                    category: prod.category,
+                });
+            }
+        }
+        return popularLowStock.sort((a, b) => b.quantitySold - a.quantitySold);
+    }
+
+    private async getExpiringProducts(): Promise<ExpiringProductDto[]> {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        startOfMonth.setHours(0, 0, 0, 0);
+        endOfMonth.setHours(23, 59, 59, 999);
+
+        const products = await this.productRepository
+            .createQueryBuilder("product")
+            .where("product.expiryDate IS NOT NULL")
+            .andWhere("product.expiryDate BETWEEN :start AND :end", { start: startOfMonth, end: endOfMonth })
+            .andWhere("product.stock > 0")
+            .andWhere("product.isActive = :isActive", { isActive: true })
+            .getMany();
+
+        const result: ExpiringProductDto[] = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (const product of products) {
+            if (!product.expiryDate) continue;
+            // Convertir a Date si es string o Date
+            const expiryDateObj = product.expiryDate instanceof Date ? product.expiryDate : new Date(product.expiryDate);
+            expiryDateObj.setHours(0, 0, 0, 0);
+            const diffTime = expiryDateObj.getTime() - today.getTime();
+            const daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // Formatear fecha como YYYY-MM-DD
+            const expiryDateStr = expiryDateObj.toISOString().split('T')[0];
+
+            result.push({
+                productId: product.id,
+                productName: product.name,
+                expiryDate: expiryDateStr,
+                stock: product.stock,
+                daysUntilExpiry: daysUntilExpiry,
+                category: product.category || "Sin categoría",
+            });
+        }
+        return result.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
     }
 }

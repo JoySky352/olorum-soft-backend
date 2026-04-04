@@ -103,4 +103,24 @@ export class AdvancedReportResponseDto {
   salesByCategory: CategorySalesDto[];
   salesByProvider: ProviderSalesDto[];
   userPerformance: UserPerformanceDto[];
-}PaymentMethodReportDto
+  popularLowStockProducts: PopularLowStockProductDto[];
+  expiringProducts: ExpiringProductDto[];
+} PaymentMethodReportDto
+
+export class PopularLowStockProductDto {
+  productId: number;
+  productName: string;
+  quantitySold: number;
+  stock: number;
+  threshold: number;
+  category: string;
+}
+
+export class ExpiringProductDto {
+  productId: number;
+  productName: string;
+  expiryDate: string;
+  stock: number;
+  daysUntilExpiry: number;
+  category: string;
+}

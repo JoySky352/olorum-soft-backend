@@ -19,4 +19,8 @@ export class Category {
 
     @UpdateDateColumn({ name: "updated_at" })
     updatedAt: Date;
+
+    // NUEVO CAMPO
+    @Column({ type: 'int', nullable: true })
+    lowStockThreshold?: number;
 }
