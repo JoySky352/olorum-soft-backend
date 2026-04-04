@@ -1,3 +1,4 @@
+// advanced-report.dto.ts
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsDate, IsOptional, IsNumber } from "class-validator";
 import { Type } from "class-transformer";
@@ -92,21 +93,6 @@ export class UserPerformanceDto {
   ticketPromedio: number;
 }
 
-export class AdvancedReportResponseDto {
-  periodo: { startDate: string; endDate: string };
-  dashboard: DashboardStatsDto;
-  topProducts: TopProductDto[];
-  lowStockProducts: LowStockProductDto[];
-  salesByHour: SalesByHourDto[];
-  dailySales: DailySalesDto[];
-  paymentMethods: PaymentMethodReportDto[];
-  salesByCategory: CategorySalesDto[];
-  salesByProvider: ProviderSalesDto[];
-  userPerformance: UserPerformanceDto[];
-  popularLowStockProducts: PopularLowStockProductDto[];
-  expiringProducts: ExpiringProductDto[];
-} PaymentMethodReportDto
-
 export class PopularLowStockProductDto {
   productId: number;
   productName: string;
@@ -123,4 +109,33 @@ export class ExpiringProductDto {
   stock: number;
   daysUntilExpiry: number;
   category: string;
+}
+
+// NUEVO DTO
+export class ProductMarginDto {
+  productId: number;
+  productName: string;
+  category?: string;
+  investor?: string;
+  unitCost: number;
+  unitPrice: number;
+  stock: number;
+  marginAmount: number;
+  marginPercentage: number;
+}
+
+export class AdvancedReportResponseDto {
+  periodo: { startDate: string; endDate: string };
+  dashboard: DashboardStatsDto;
+  topProducts: TopProductDto[];
+  lowStockProducts: LowStockProductDto[];
+  salesByHour: SalesByHourDto[];
+  dailySales: DailySalesDto[];
+  paymentMethods: PaymentMethodReportDto[];
+  salesByCategory: CategorySalesDto[];
+  salesByProvider: ProviderSalesDto[];
+  userPerformance: UserPerformanceDto[];
+  popularLowStockProducts: PopularLowStockProductDto[];
+  expiringProducts: ExpiringProductDto[];
+  productMargins: ProductMarginDto[]; // NUEVO
 }

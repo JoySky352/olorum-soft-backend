@@ -22,6 +22,7 @@ import {
     UserPerformanceDto,
     PopularLowStockProductDto,
     ExpiringProductDto,
+    ProductMarginDto, // NUEVO
 } from "../dto/advanced-report.dto";
 
 @Injectable()
@@ -75,10 +76,10 @@ export class AdvancedReportService {
         // Productos con stock bajo (modificado para usar umbral por categoría)
         const lowStockProducts = await this.getLowStockProducts();
 
-        // NUEVO: Productos populares con stock bajo
+        // Productos populares con stock bajo
         const popularLowStockProducts = await this.getPopularLowStockProducts(sales);
 
-        // NUEVO: Productos próximos a vencer en el mes actual
+        // Productos próximos a vencer en el mes actual
         const expiringProducts = await this.getExpiringProducts();
 
         // Ventas por hora
@@ -99,6 +100,9 @@ export class AdvancedReportService {
         // Rendimiento por usuario
         const userPerformance = this.getUserPerformance(sales);
 
+        // NUEVO: Margen por producto
+        const productMargins = await this.getProductMargins();
+
         return {
             periodo: {
                 startDate: start.toISOString(),
@@ -115,16 +119,16 @@ export class AdvancedReportService {
             userPerformance,
             popularLowStockProducts,
             expiringProducts,
+            productMargins, // NUEVO
         };
     }
 
-    // ========== MÉTODOS EXISTENTES (copiados de tu archivo original) ==========
+    // ========== MÉTODOS EXISTENTES (tuyos, intactos) ==========
 
     private async calculateDashboardStats(sales: Sale[], startDate: Date, endDate: Date): Promise<DashboardStatsDto> {
         const ingresosTotales = sales.reduce((sum, s) => sum + Number(s.total), 0);
         const totalVentas = sales.length;
 
-        // Calcular ganancia
         let gananciaTotal = 0;
         for (const sale of sales) {
             for (const item of sale.items) {
@@ -134,14 +138,12 @@ export class AdvancedReportService {
             }
         }
 
-        // Gastos del período
         const expenses = await this.expenseRepository
             .createQueryBuilder("expense")
             .where("expense.expense_date BETWEEN :start AND :end", { start: startDate, end: endDate })
             .getMany();
         const totalGastos = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
-        // Extracciones
         const withdrawals = await this.withdrawalRepository
             .createQueryBuilder("withdrawal")
             .where("withdrawal.created_at BETWEEN :start AND :end", { start: startDate, end: endDate })
@@ -207,7 +209,6 @@ export class AdvancedReportService {
             .where("product.isActive = :isActive", { isActive: true })
             .getMany();
 
-        // Obtener todas las categorías con su umbral
         const categories = await this.categoryRepository.find();
         const categoryThresholdMap = new Map<string, number>();
         for (const cat of categories) {
@@ -392,10 +393,9 @@ export class AdvancedReportService {
         })).sort((a, b) => b.ingresosTotales - a.ingresosTotales);
     }
 
-    // ========== NUEVOS MÉTODOS (sin dayjs, usando JavaScript nativo) ==========
+    // ========== NUEVOS MÉTODOS ==========
 
     private async getPopularLowStockProducts(sales: Sale[]): Promise<PopularLowStockProductDto[]> {
-        // Obtener top 10 productos más vendidos (por cantidad, sin considerar devoluciones)
         const productSalesMap = new Map<number, { name: string; quantity: number; category: string }>();
         for (const sale of sales) {
             for (const item of sale.items) {
@@ -416,7 +416,6 @@ export class AdvancedReportService {
             .sort((a, b) => b.quantity - a.quantity)
             .slice(0, 10);
 
-        // Obtener umbrales por categoría
         const categories = await this.categoryRepository.find();
         const categoryThresholdMap = new Map<string, number>();
         for (const cat of categories) {
@@ -426,7 +425,6 @@ export class AdvancedReportService {
         }
         const DEFAULT_THRESHOLD = 10;
 
-        // Filtrar los que tienen stock bajo
         const popularLowStock: PopularLowStockProductDto[] = [];
         for (const prod of topProducts) {
             const productEntity = await this.productRepository.findOne({ where: { id: prod.id } });
@@ -467,13 +465,10 @@ export class AdvancedReportService {
 
         for (const product of products) {
             if (!product.expiryDate) continue;
-            // Convertir a Date si es string o Date
             const expiryDateObj = product.expiryDate instanceof Date ? product.expiryDate : new Date(product.expiryDate);
             expiryDateObj.setHours(0, 0, 0, 0);
             const diffTime = expiryDateObj.getTime() - today.getTime();
             const daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            // Formatear fecha como YYYY-MM-DD
             const expiryDateStr = expiryDateObj.toISOString().split('T')[0];
 
             result.push({
@@ -486,5 +481,28 @@ export class AdvancedReportService {
             });
         }
         return result.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+    }
+
+    async getProductMargins(): Promise<ProductMarginDto[]> {
+        const products = await this.productRepository.find({
+            where: { isActive: true },
+            order: { name: 'ASC' },
+        });
+        const margins = products.map(p => {
+            const marginAmount = p.unitPrice - p.unitCost;
+            const marginPercentage = p.unitPrice > 0 ? (marginAmount / p.unitPrice) * 100 : 0;
+            return {
+                productId: p.id,
+                productName: p.name,
+                category: p.category,
+                investor: p.investor,
+                unitCost: p.unitCost,
+                unitPrice: p.unitPrice,
+                stock: p.stock,
+                marginAmount: parseFloat(marginAmount.toFixed(2)),
+                marginPercentage: parseFloat(marginPercentage.toFixed(1)),
+            };
+        });
+        return margins.sort((a, b) => b.marginPercentage - a.marginPercentage);
     }
 }
