@@ -28,7 +28,7 @@ import { AdvancedReportModule } from "./modules/advanced-report/advanced-report.
       type: "better-sqlite3",
       database: "uploads/db.db",
       entities: [__dirname + "/**/*.entity{.ts,.js}"],
-      synchronize: true, // en true Solo para desarrollo
+      synchronize: false, // en true Solo para desarrollo
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, "..", "uploads"),
