@@ -5,11 +5,11 @@ import { Type } from "class-transformer";
 export class GetSalesDto {
   @ApiPropertyOptional({
     description: "Status",
-    enum: ["created", "charged", "refunded", "partial_refund"],
+    enum: ["created", "charged", "refunded", "partial_refund", "pending"], // 👈 agregar "pending"
   })
   @IsOptional()
-  @IsEnum(["created", "charged", "refunded", "partial_refund"])
-  status?: "created" | "charged" | "refunded" | "partial_refund";
+  @IsEnum(["created", "charged", "refunded", "partial_refund", "pending"])
+  status?: "created" | "charged" | "refunded" | "partial_refund" | "pending";
 
   @ApiPropertyOptional({ description: "Fecha inicio" })
   @IsOptional()

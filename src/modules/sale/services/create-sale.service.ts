@@ -18,16 +18,12 @@ export class CreateSaleService {
   async create(dto: CreateSaleDto, manager: EntityManager, userId?: number, shiftId?: number) {
 
     const total =
-      dto.paymentMethod === "Free"
+      dto.paymentMethod === "Free" || dto.paymentMethod === "ValePendiente"
         ? 0
-        : dto.items.reduce(
-          (sum, item) => sum + item.quantity * item.unitPrice,
-          0,
-        );
-    if (total <= 0 && dto.paymentMethod !== "Free")
-      throw new BadRequestException(
-        "El total de la venta debe ser mayor que 0",
-      );
+        : dto.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+    if (total <= 0 && dto.paymentMethod !== "Free" && dto.paymentMethod !== "ValePendiente")
+      throw new BadRequestException("El total de la venta debe ser mayor que 0");
 
     let paymentMethod = dto.paymentMethod;
     let originalPaymentMethod = dto.paymentMethod;
@@ -37,31 +33,27 @@ export class CreateSaleService {
       originalPaymentMethod = dto.paymentMethod;
     }
 
+    const status: "created" | "charged" | "refunded" | "partial_refund" | "pending" =
+      dto.paymentMethod === "ValePendiente" ? "pending" :
+        dto.paymentMethod === "Free" ? "charged" :
+          "created";
+
     const saleData: Partial<Sale> = {
       paymentMethod: paymentMethod,
       originalPaymentMethod: originalPaymentMethod,
       total,
-      originalTotal: total, // Guardar el total original
+      originalTotal: total,
       createdAt: new Date(),
       refunded: 0,
-      status: "created",
+      status: status,
     };
 
-    if (userId) {
-      saleData.userId = userId;
-    }
+    if (userId) saleData.userId = userId;
+    if (shiftId) saleData.shiftId = shiftId;
 
-    if (shiftId) {
-      saleData.shiftId = shiftId;
-    }
-
-    // IMPORTANTE: Guardar desglose para pago mixto
-    // Verificar si dto.mixedPayment existe
     if (dto.mixedPayment) {
       saleData.efectivoAmount = dto.mixedPayment.efectivo;
       saleData.transferenciaAmount = dto.mixedPayment.transferencia;
-    } else {
-      console.log('⚠️ No hay mixedPayment en el DTO');
     }
 
     const sale = manager.create(Sale, saleData);
@@ -69,11 +61,9 @@ export class CreateSaleService {
 
     await Promise.all(
       dto.items.map((item) => {
-        const itemTotal = dto.paymentMethod === "Free" ? 0 : item.unitPrice * item.quantity;
-        if (itemTotal <= 0 && dto.paymentMethod !== "Free")
-          return Promise.reject(
-            new Error(`Total del producto con ID: ${item.productId} inválido`),
-          );
+        const itemTotal = dto.paymentMethod === "Free" || dto.paymentMethod === "ValePendiente" ? 0 : item.unitPrice * item.quantity;
+        if (itemTotal <= 0 && dto.paymentMethod !== "Free" && dto.paymentMethod !== "ValePendiente")
+          return Promise.reject(new Error(`Total del producto con ID: ${item.productId} inválido`));
         const invoiceItem = manager.create(SaleItem, {
           sale,
           productId: item.productId,

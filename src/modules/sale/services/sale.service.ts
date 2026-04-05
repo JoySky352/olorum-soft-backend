@@ -36,7 +36,7 @@ export class SaleService {
     if (status) {
       query.andWhere("sale.status = :status", { status });
     } else {
-      // Por defecto, mostrar todas excepto 'created'
+      // Mostrar todas excepto 'created' (pending debe mostrarse)
       query.andWhere("sale.status != :status", { status: "created" });
     }
 

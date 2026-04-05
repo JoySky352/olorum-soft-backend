@@ -84,4 +84,16 @@ export class SaleController {
         );
     }
   }
+
+  @Get("pending")
+  @ApiOperation({ summary: "Obtener vales pendientes" })
+  async getPendingSales(@Query() dto: GetSalesDto) {
+    const allDto: GetSalesDto = {
+      ...dto,
+      status: "pending",
+      limit: dto.limit || 100,
+      offset: dto.offset || 0,
+    };
+    return this.saleService.findAll(allDto);
+  }
 }

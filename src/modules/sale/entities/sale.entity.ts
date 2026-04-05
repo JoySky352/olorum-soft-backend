@@ -17,20 +17,13 @@ export class Sale {
   @Column({ type: "decimal", precision: 12, scale: 2 })
   refunded: number;
 
-  @Column({
-    name: "created_at",
-    type: "datetime",
-  })
+  @Column({ name: "created_at", type: "datetime" })
   createdAt: Date;
 
   @Column()
-  status: "created" | "charged" | "refunded" | "partial_refund";
+  status: "created" | "charged" | "refunded" | "partial_refund" | "pending";
 
-  @Column({
-    name: "updated_at",
-    type: "date",
-    nullable: true,
-  })
+  @Column({ name: "updated_at", type: "date", nullable: true })
   updatedAt?: Date;
 
   @OneToMany(() => SaleItem, (item) => item.sale)
