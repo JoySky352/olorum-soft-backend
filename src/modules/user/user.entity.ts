@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, JoinColumn, ManyToOne } from "typeorm";
+import { SalaryPlan } from '../salary/entities/salary-plan.entity';
 import * as bcrypt from "bcrypt";
 
 export enum UserRole {
@@ -59,4 +60,8 @@ export class User {
     async comparePassword(attempt: string): Promise<boolean> {
         return await bcrypt.compare(attempt, this.password);
     }
+
+    @ManyToOne(() => SalaryPlan, { nullable: true })
+    @JoinColumn({ name: 'salary_plan_id' })
+    salaryPlan: SalaryPlan | null;
 }

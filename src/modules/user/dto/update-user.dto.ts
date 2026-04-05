@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsOptional, IsEnum } from "class-validator";
+import { IsEmail, IsString, MinLength, IsOptional, IsEnum, IsNumber } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { UserRole } from "../user.entity";
 
@@ -51,4 +51,9 @@ export class UpdateUserDto {
     })
     @IsOptional()
     isActive?: boolean;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    salaryPlanId?: number;
 }

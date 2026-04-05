@@ -5,6 +5,7 @@ import { User, UserRole, UserWithoutPassword } from "./user.entity";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { JwtService } from "@nestjs/jwt";
+import { SalaryPlanService } from "../salary/services/salary-plan.service";
 
 @Injectable()
 export class UserService {
@@ -12,6 +13,7 @@ export class UserService {
         @InjectRepository(User)
         private userRepository: Repository<User>,
         private jwtService: JwtService,
+        private salaryPlanService: SalaryPlanService,
     ) { }
 
     private mapToUserWithoutPassword(user: User): UserWithoutPassword {
@@ -36,6 +38,10 @@ export class UserService {
         }
 
         const user = this.userRepository.create(createUserDto);
+        if (createUserDto.salaryPlanId) {
+            const plan = await this.salaryPlanService.findOne(createUserDto.salaryPlanId);
+            user.salaryPlan = plan;
+        }
         await this.userRepository.save(user);
 
         return this.mapToUserWithoutPassword(user);
@@ -58,6 +64,11 @@ export class UserService {
         const user = await this.userRepository.findOne({ where: { id } });
         if (!user) {
             throw new NotFoundException(`User with ID ${id} not found`);
+        }
+
+        if (updateUserDto.salaryPlanId !== undefined) {
+            const plan = await this.salaryPlanService.findOne(updateUserDto.salaryPlanId);
+            user.salaryPlan = plan;
         }
 
         Object.assign(user, updateUserDto);
@@ -125,7 +136,7 @@ export class UserService {
             const superAdmin = this.userRepository.create({
                 username: "superadmin",
                 email: "superadmin@olorunsoft.com",
-                password: "Admin123!",
+                password: "1234qwerasdf",
                 role: UserRole.SUPER_ADMIN,
                 isActive: true,
             });

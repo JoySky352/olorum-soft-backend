@@ -17,6 +17,7 @@ import { NewReportsModule } from "./modules/new-reports/new-reports.module";
 import { ShiftModule } from "./modules/shift/shift.module";
 import { ExpenseModule } from "./modules/expense/expense.module";
 import { AdvancedReportModule } from "./modules/advanced-report/advanced-report.module";
+import { SalaryModule } from './modules/salary/salary.module';
 
 @Module({
   imports: [
@@ -28,7 +29,7 @@ import { AdvancedReportModule } from "./modules/advanced-report/advanced-report.
       type: "better-sqlite3",
       database: "uploads/db.db",
       entities: [__dirname + "/**/*.entity{.ts,.js}"],
-      synchronize: false, // en true Solo para desarrollo
+      synchronize: true, // en true Solo para desarrollo
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, "..", "uploads"),
@@ -45,6 +46,7 @@ import { AdvancedReportModule } from "./modules/advanced-report/advanced-report.
     ShiftModule,
     ExpenseModule,
     AdvancedReportModule,
+    SalaryModule
   ],
   controllers: [AppController],
   providers: [AppService],

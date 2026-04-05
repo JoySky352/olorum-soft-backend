@@ -74,4 +74,6 @@ export class ShiftReportDto {
         mixto: number;
         free: number;
     };
+    @ApiProperty()
+    salario: number;
 }

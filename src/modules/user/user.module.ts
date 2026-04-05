@@ -5,10 +5,11 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { User } from "./user.entity";
 import { UserService } from "./user.service";
 import { UserController } from "./user.controller";
+import { SalaryModule } from "../salary/salary.module";
 
 @Module({
     imports: [
-        ConfigModule, // 👈 Importar ConfigModule
+        ConfigModule,
         TypeOrmModule.forFeature([User]),
         JwtModule.registerAsync({
             imports: [ConfigModule],
@@ -18,6 +19,7 @@ import { UserController } from "./user.controller";
                 signOptions: { expiresIn: "24h" },
             }),
         }),
+        SalaryModule,
     ],
     controllers: [UserController],
     providers: [UserService],
