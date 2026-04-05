@@ -25,6 +25,7 @@ export class UserService {
             isActive: user.isActive,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
+            salaryPlanId: user.salaryPlan?.id || null, // 👈 agregar
         };
     }
 
@@ -32,28 +33,26 @@ export class UserService {
         const existingUser = await this.userRepository.findOne({
             where: [{ username: createUserDto.username }, { email: createUserDto.email }],
         });
-
         if (existingUser) {
             throw new ConflictException("Username or email already exists");
         }
-
         const user = this.userRepository.create(createUserDto);
         if (createUserDto.salaryPlanId) {
             const plan = await this.salaryPlanService.findOne(createUserDto.salaryPlanId);
             user.salaryPlan = plan;
         }
         await this.userRepository.save(user);
-
         return this.mapToUserWithoutPassword(user);
     }
 
     async findAll(): Promise<UserWithoutPassword[]> {
-        const users = await this.userRepository.find();
+        // Cargar la relación salaryPlan
+        const users = await this.userRepository.find({ relations: ['salaryPlan'] });
         return users.map(user => this.mapToUserWithoutPassword(user));
     }
 
     async findOne(id: number): Promise<UserWithoutPassword> {
-        const user = await this.userRepository.findOne({ where: { id } });
+        const user = await this.userRepository.findOne({ where: { id }, relations: ['salaryPlan'] });
         if (!user) {
             throw new NotFoundException(`User with ID ${id} not found`);
         }
@@ -61,19 +60,16 @@ export class UserService {
     }
 
     async update(id: number, updateUserDto: UpdateUserDto): Promise<UserWithoutPassword> {
-        const user = await this.userRepository.findOne({ where: { id } });
+        const user = await this.userRepository.findOne({ where: { id }, relations: ['salaryPlan'] });
         if (!user) {
             throw new NotFoundException(`User with ID ${id} not found`);
         }
-
         if (updateUserDto.salaryPlanId !== undefined) {
             const plan = await this.salaryPlanService.findOne(updateUserDto.salaryPlanId);
             user.salaryPlan = plan;
         }
-
         Object.assign(user, updateUserDto);
         await this.userRepository.save(user);
-
         return this.mapToUserWithoutPassword(user);
     }
 

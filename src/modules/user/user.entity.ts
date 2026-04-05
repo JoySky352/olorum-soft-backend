@@ -17,6 +17,7 @@ export type UserWithoutPassword = {
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
+    salaryPlanId?: number | null;
 };
 
 @Entity("users")
