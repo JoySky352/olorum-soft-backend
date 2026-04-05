@@ -14,6 +14,12 @@ export class SalaryPlan {
     @Column('decimal', { precision: 5, scale: 2, nullable: true })
     variablePercentage: number | null;
 
+    @Column('decimal', { precision: 10, scale: 2, nullable: true })
+    thresholdAmount: number | null;        // 👈 nuevo
+
+    @Column('decimal', { precision: 5, scale: 2, nullable: true })
+    extraPercentage: number | null;        // 👈 nuevo
+
     @Column({ default: true })
     isActive: boolean;
 

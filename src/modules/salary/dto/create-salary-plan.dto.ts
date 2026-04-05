@@ -1,4 +1,4 @@
-import { IsString, IsNumber, Min, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsNumber, Min, IsOptional, IsPositive } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateSalaryPlanDto {
@@ -16,4 +16,16 @@ export class CreateSalaryPlanDto {
     @IsNumber()
     @Min(0)
     variablePercentage?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    @IsPositive()
+    thresholdAmount?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    extraPercentage?: number;
 }

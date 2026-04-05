@@ -135,8 +135,12 @@ export class ShiftService {
         let salario = 0;
         if (shift.user?.salaryPlan) {
             const plan = shift.user.salaryPlan;
-            const variable = (ingresosTotales * (plan.variablePercentage || 0)) / 100;
-            salario = plan.fixedSalary + variable;
+            let total = plan.fixedSalary;
+            total += (ingresosTotales * (plan.variablePercentage || 0)) / 100;
+            if (plan.thresholdAmount && plan.extraPercentage && ingresosTotales > plan.thresholdAmount) {
+                total += (ingresosTotales * plan.extraPercentage) / 100;
+            }
+            salario = total;
         }
 
         return {
@@ -160,111 +164,111 @@ export class ShiftService {
         };
     }
 
-async getShiftsReport(dto: GetShiftsDto): Promise<{ shifts: ShiftReportDto[]; total: number }> {
-    const { limit = 50, offset = 0, startDate, endDate, userId } = dto;
+    async getShiftsReport(dto: GetShiftsDto): Promise<{ shifts: ShiftReportDto[]; total: number }> {
+        const { limit = 50, offset = 0, startDate, endDate, userId } = dto;
 
-    const query = this.shiftRepository
-        .createQueryBuilder("shift")
-        .leftJoinAndSelect("shift.sales", "sale")
-        .leftJoinAndSelect("sale.items", "item")
-        .leftJoinAndSelect("item.product", "product")
-        .leftJoinAndSelect("shift.user", "user")               // 👈 cargar usuario
-        .leftJoinAndSelect("user.salaryPlan", "salaryPlan")    // 👈 cargar plan de salario
-        .orderBy("shift.opened_at", "DESC");
+        const query = this.shiftRepository
+            .createQueryBuilder("shift")
+            .leftJoinAndSelect("shift.sales", "sale")
+            .leftJoinAndSelect("sale.items", "item")
+            .leftJoinAndSelect("item.product", "product")
+            .leftJoinAndSelect("shift.user", "user")               // 👈 cargar usuario
+            .leftJoinAndSelect("user.salaryPlan", "salaryPlan")    // 👈 cargar plan de salario
+            .orderBy("shift.opened_at", "DESC");
 
-    if (userId) {
-        query.andWhere("shift.user_id = :userId", { userId });
-    }
+        if (userId) {
+            query.andWhere("shift.user_id = :userId", { userId });
+        }
 
-    if (startDate && endDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        query.andWhere("shift.opened_at BETWEEN :start AND :end", { start, end });
-    }
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query.andWhere("shift.opened_at BETWEEN :start AND :end", { start, end });
+        }
 
-    const [shifts, total] = await query.getManyAndCount();
+        const [shifts, total] = await query.getManyAndCount();
 
-    const shiftReports = shifts.map(shift => {
-        const ventas = shift.sales.filter(s => s.status === "charged" || s.status === "partial_refund");
+        const shiftReports = shifts.map(shift => {
+            const ventas = shift.sales.filter(s => s.status === "charged" || s.status === "partial_refund");
 
-        let ingresosTotales = 0;
-        let gananciaTotal = 0;
-        let efectivoTotal = 0;
-        let transferenciaTotal = 0;
-        let mixtoTotal = 0;
-        let freeCostoTotal = 0;
+            let ingresosTotales = 0;
+            let gananciaTotal = 0;
+            let efectivoTotal = 0;
+            let transferenciaTotal = 0;
+            let mixtoTotal = 0;
+            let freeCostoTotal = 0;
 
-        for (const sale of ventas) {
-            const montoReal = Number(sale.total) - (sale.refunded || 0);
-            if (montoReal <= 0) continue;
+            for (const sale of ventas) {
+                const montoReal = Number(sale.total) - (sale.refunded || 0);
+                if (montoReal <= 0) continue;
 
-            ingresosTotales += montoReal;
+                ingresosTotales += montoReal;
 
-            for (const item of sale.items) {
-                const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
-                if (cantidadNoDevuelta <= 0) continue;
-                const ingreso = Number(item.unitPrice) * cantidadNoDevuelta;
-                const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
-                gananciaTotal += ingreso - costo;
-            }
-
-            const metodo = sale.paymentMethod;
-            if (metodo === "Efectivo" || metodo === "USD" || metodo === "EUR") {
-                efectivoTotal += montoReal;
-            } else if (metodo === "Transferencia") {
-                transferenciaTotal += montoReal;
-            } else if (metodo === "Mixto") {
-                const totalOriginal = Number(sale.total);
-                const efectivoOriginal = Number(sale.efectivoAmount || 0);
-                const transferenciaOriginal = Number(sale.transferenciaAmount || 0);
-                if (totalOriginal > 0 && montoReal > 0) {
-                    const efectivoReal = (montoReal * efectivoOriginal) / totalOriginal;
-                    const transferenciaReal = (montoReal * transferenciaOriginal) / totalOriginal;
-                    efectivoTotal += efectivoReal;
-                    transferenciaTotal += transferenciaReal;
-                }
-                mixtoTotal += montoReal;
-            } else if (metodo === "Free") {
                 for (const item of sale.items) {
                     const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
                     if (cantidadNoDevuelta <= 0) continue;
+                    const ingreso = Number(item.unitPrice) * cantidadNoDevuelta;
                     const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
-                    freeCostoTotal += costo;
+                    gananciaTotal += ingreso - costo;
+                }
+
+                const metodo = sale.paymentMethod;
+                if (metodo === "Efectivo" || metodo === "USD" || metodo === "EUR") {
+                    efectivoTotal += montoReal;
+                } else if (metodo === "Transferencia") {
+                    transferenciaTotal += montoReal;
+                } else if (metodo === "Mixto") {
+                    const totalOriginal = Number(sale.total);
+                    const efectivoOriginal = Number(sale.efectivoAmount || 0);
+                    const transferenciaOriginal = Number(sale.transferenciaAmount || 0);
+                    if (totalOriginal > 0 && montoReal > 0) {
+                        const efectivoReal = (montoReal * efectivoOriginal) / totalOriginal;
+                        const transferenciaReal = (montoReal * transferenciaOriginal) / totalOriginal;
+                        efectivoTotal += efectivoReal;
+                        transferenciaTotal += transferenciaReal;
+                    }
+                    mixtoTotal += montoReal;
+                } else if (metodo === "Free") {
+                    for (const item of sale.items) {
+                        const cantidadNoDevuelta = item.quantity - (item.quantityRefunded || 0);
+                        if (cantidadNoDevuelta <= 0) continue;
+                        const costo = Number(item.product?.unitCost || 0) * cantidadNoDevuelta;
+                        freeCostoTotal += costo;
+                    }
                 }
             }
-        }
 
-        // Calcular salario según plan del usuario
-        let salario = 0;
-        if (shift.user?.salaryPlan) {
-            const plan = shift.user.salaryPlan;
-            const variable = (ingresosTotales * (plan.variablePercentage || 0)) / 100;
-            salario = plan.fixedSalary + variable;
-        }
+            // Calcular salario según plan del usuario
+            let salario = 0;
+            if (shift.user?.salaryPlan) {
+                const plan = shift.user.salaryPlan;
+                const variable = (ingresosTotales * (plan.variablePercentage || 0)) / 100;
+                salario = plan.fixedSalary + variable;
+            }
 
-        return {
-            id: shift.id,
-            userName: shift.userName,
-            openedAt: shift.openedAt.toISOString(),
-            closedAt: shift.closedAt?.toISOString() || null,
-            openingCash: shift.openingCash,
-            closingCash: shift.closingCash,
-            status: shift.status,
-            totalVentas: ventas.length,
-            ingresosTotales: parseFloat(ingresosTotales.toFixed(2)),
-            gananciaTotal: parseFloat(gananciaTotal.toFixed(2)),
-            ventasPorMetodoPago: {
-                efectivo: parseFloat(efectivoTotal.toFixed(2)),
-                transferencia: parseFloat(transferenciaTotal.toFixed(2)),
-                mixto: parseFloat(mixtoTotal.toFixed(2)),
-                free: parseFloat(freeCostoTotal.toFixed(2)),
-            },
-            salario: parseFloat(salario.toFixed(2)),   // 👈 añadir salario
-        };
-    });
+            return {
+                id: shift.id,
+                userName: shift.userName,
+                openedAt: shift.openedAt.toISOString(),
+                closedAt: shift.closedAt?.toISOString() || null,
+                openingCash: shift.openingCash,
+                closingCash: shift.closingCash,
+                status: shift.status,
+                totalVentas: ventas.length,
+                ingresosTotales: parseFloat(ingresosTotales.toFixed(2)),
+                gananciaTotal: parseFloat(gananciaTotal.toFixed(2)),
+                ventasPorMetodoPago: {
+                    efectivo: parseFloat(efectivoTotal.toFixed(2)),
+                    transferencia: parseFloat(transferenciaTotal.toFixed(2)),
+                    mixto: parseFloat(mixtoTotal.toFixed(2)),
+                    free: parseFloat(freeCostoTotal.toFixed(2)),
+                },
+                salario: parseFloat(salario.toFixed(2)),   // 👈 añadir salario
+            };
+        });
 
-    return { shifts: shiftReports.slice(offset, offset + limit), total };
-}
+        return { shifts: shiftReports.slice(offset, offset + limit), total };
+    }
 }
