@@ -12,9 +12,10 @@ import { ThemeController } from "./controllers/theme.controller";
 import { ExchangeRate } from './entities/exchange-rate.entity';
 import { ExchangeRateService } from './services/exchange-rate.service';
 import { ExchangeRateController } from './controllers/exchange-rate.controller';
+import { SalaryPlan } from '../salary/entities/salary-plan.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Category, Provider, Theme, ExchangeRate])],
+  imports: [TypeOrmModule.forFeature([Category, Provider, Theme, ExchangeRate, SalaryPlan])],
   controllers: [CategoryController, ProviderController, ThemeController, ExchangeRateController],
   providers: [CategoryService, ProviderService, ThemeService, ExchangeRateService],
   exports: [CategoryService, ProviderService, ThemeService],

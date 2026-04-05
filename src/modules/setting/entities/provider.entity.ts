@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { SalaryPlan } from "../../salary/entities/salary-plan.entity";
 
 @Entity("providers")
 export class Provider {
@@ -28,4 +29,12 @@ export class Provider {
 
     @UpdateDateColumn({ name: "updated_at" })
     updatedAt: Date;
+
+    // Nuevo: relación con plan de utilidad (profit)
+    @ManyToOne(() => SalaryPlan, { nullable: true })
+    @JoinColumn({ name: "profit_plan_id" })
+    profitPlan: SalaryPlan | null;
+
+    @Column({ name: "profit_plan_id", nullable: true })
+    profitPlanId: number | null;
 }

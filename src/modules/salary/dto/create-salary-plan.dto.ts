@@ -1,31 +1,38 @@
-import { IsString, IsNumber, Min, IsOptional, IsPositive } from 'class-validator';
+import { IsString, IsNumber, Min, IsOptional, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import type { PlanType } from '../entities/salary-plan.entity';
 
 export class CreateSalaryPlanDto {
-    @ApiProperty()
-    @IsString()
-    name: string;
+  @ApiProperty()
+  @IsString()
+  name: string;
 
-    @ApiProperty()
-    @IsNumber()
-    @Min(0)
-    fixedSalary: number;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  fixedSalary?: number | null;
 
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    variablePercentage?: number;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  variablePercentage?: number | null;
 
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsNumber()
-    @IsPositive()
-    thresholdAmount?: number;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  thresholdAmount?: number | null;
 
-    @ApiProperty({ required: false })
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    extraPercentage?: number;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  extraPercentage?: number | null;
+
+  @ApiProperty({ enum: ['salary', 'profit'], default: 'salary' })
+  @IsOptional()
+  @IsEnum(['salary', 'profit'])
+  planType?: PlanType;
 }

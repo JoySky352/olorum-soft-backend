@@ -135,12 +135,14 @@ export class ShiftService {
         let salario = 0;
         if (shift.user?.salaryPlan) {
             const plan = shift.user.salaryPlan;
-            let total = plan.fixedSalary;
+            let total = plan.fixedSalary || 0;
             total += (ingresosTotales * (plan.variablePercentage || 0)) / 100;
             if (plan.thresholdAmount && plan.extraPercentage && ingresosTotales > plan.thresholdAmount) {
                 total += (ingresosTotales * plan.extraPercentage) / 100;
             }
             salario = total;
+        } else {
+            salario = 0;
         }
 
         return {
@@ -240,12 +242,15 @@ export class ShiftService {
                 }
             }
 
-            // Calcular salario según plan del usuario
             let salario = 0;
             if (shift.user?.salaryPlan) {
                 const plan = shift.user.salaryPlan;
-                const variable = (ingresosTotales * (plan.variablePercentage || 0)) / 100;
-                salario = plan.fixedSalary + variable;
+                let total = plan.fixedSalary || 0;
+                total += (ingresosTotales * (plan.variablePercentage || 0)) / 100;
+                if (plan.thresholdAmount && plan.extraPercentage && ingresosTotales > plan.thresholdAmount) {
+                    total += (ingresosTotales * plan.extraPercentage) / 100;
+                }
+                salario = total;
             }
 
             return {

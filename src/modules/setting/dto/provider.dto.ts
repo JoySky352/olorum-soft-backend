@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsString, IsOptional, IsBoolean, IsEmail } from "class-validator";
+import { IsString, IsOptional, IsBoolean, IsEmail, IsNumber } from "class-validator";
 
 export class CreateProviderDto {
     @ApiProperty({ example: "Cervecería Bucanero" })
@@ -25,6 +25,11 @@ export class CreateProviderDto {
     @IsOptional()
     @IsString()
     address?: string;
+
+    @ApiPropertyOptional({ description: "ID del plan de utilidad (profit) para este proveedor" })
+    @IsOptional()
+    @IsNumber()
+    profitPlanId?: number;
 }
 
 export class UpdateProviderDto {
@@ -57,4 +62,9 @@ export class UpdateProviderDto {
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
+
+    @ApiPropertyOptional({ description: "ID del plan de utilidad (profit) para este proveedor" })
+    @IsOptional()
+    @IsNumber()
+    profitPlanId?: number;
 }

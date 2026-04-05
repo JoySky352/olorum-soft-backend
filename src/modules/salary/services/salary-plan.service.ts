@@ -13,7 +13,7 @@ export class SalaryPlanService {
 
     async create(dto: CreateSalaryPlanDto): Promise<SalaryPlan> {
         const plan = this.salaryPlanRepository.create(dto);
-        return await this.salaryPlanRepository.save(plan); // debe retornar un objeto, no un array
+        return await this.salaryPlanRepository.save(plan);
     }
 
     async findAll(): Promise<SalaryPlan[]> {

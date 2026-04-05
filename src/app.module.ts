@@ -18,6 +18,7 @@ import { ShiftModule } from "./modules/shift/shift.module";
 import { ExpenseModule } from "./modules/expense/expense.module";
 import { AdvancedReportModule } from "./modules/advanced-report/advanced-report.module";
 import { SalaryModule } from './modules/salary/salary.module';
+import { ProfitModule } from './modules/profit/profit.module';
 
 @Module({
   imports: [
@@ -46,7 +47,8 @@ import { SalaryModule } from './modules/salary/salary.module';
     ShiftModule,
     ExpenseModule,
     AdvancedReportModule,
-    SalaryModule
+    SalaryModule,
+    ProfitModule,
   ],
   controllers: [AppController],
   providers: [AppService],

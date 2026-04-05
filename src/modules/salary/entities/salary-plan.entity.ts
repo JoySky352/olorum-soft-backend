@@ -1,5 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
+export type PlanType = 'salary' | 'profit';
+
 @Entity('salary_plans')
 export class SalaryPlan {
     @PrimaryGeneratedColumn()
@@ -8,17 +10,20 @@ export class SalaryPlan {
     @Column({ unique: true })
     name: string;
 
-    @Column('decimal', { precision: 10, scale: 2 })
-    fixedSalary: number;
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    fixedSalary: number | null;
 
-    @Column('decimal', { precision: 5, scale: 2, nullable: true })
+    @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
     variablePercentage: number | null;
 
-    @Column('decimal', { precision: 10, scale: 2, nullable: true })
-    thresholdAmount: number | null;        // 👈 nuevo
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    thresholdAmount: number | null;
 
-    @Column('decimal', { precision: 5, scale: 2, nullable: true })
-    extraPercentage: number | null;        // 👈 nuevo
+    @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+    extraPercentage: number | null;
+
+    @Column({ type: 'varchar', default: 'salary' })
+    planType: PlanType;
 
     @Column({ default: true })
     isActive: boolean;

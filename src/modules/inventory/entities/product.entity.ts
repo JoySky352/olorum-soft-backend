@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Provider } from '../../setting/entities/provider.entity';
 
 @Entity('products')
 export class Product {
@@ -23,23 +24,27 @@ export class Product {
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   stock: number;
 
-  @Column({
-    name: 'created_at',
-    type: 'date',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @Column({ name: 'created_at', type: 'date', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
   @Column({ nullable: true })
   category?: string;
 
+  // Relación con proveedor
+  @ManyToOne(() => Provider, { nullable: true })
+  @JoinColumn({ name: 'investor_id' })
+  investorEntity?: Provider;
+
+  @Column({ name: 'investor_id', nullable: true })
+  investorId?: number;
+
+  // Para compatibilidad con el código existente (investor string)
   @Column({ nullable: true })
   investor?: string;
 
   @Column({ default: true })
   isActive: boolean;
 
-  // NUEVO CAMPO
   @Column({ type: 'date', nullable: true })
   expiryDate?: Date;
 }
