@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Between, Repository } from "typeorm";
 import { Sale } from "../../sale/entities/sale.entity";
 import { SaleItem } from "../../sale/entities/sale-item.entity";
 import { Product } from "../../inventory/entities/product.entity";
@@ -22,8 +22,10 @@ import {
     UserPerformanceDto,
     PopularLowStockProductDto,
     ExpiringProductDto,
-    ProductMarginDto, // NUEVO
+    ProductMarginDto,
+    FreeStatsDto, // NUEVO
 } from "../dto/advanced-report.dto";
+import { CubaDateHelper } from "src/modules/new-reports/helpers/date-helper";
 
 @Injectable()
 export class AdvancedReportService {
@@ -393,8 +395,6 @@ export class AdvancedReportService {
         })).sort((a, b) => b.ingresosTotales - a.ingresosTotales);
     }
 
-    // ========== NUEVOS MÉTODOS ==========
-
     private async getPopularLowStockProducts(sales: Sale[]): Promise<PopularLowStockProductDto[]> {
         const productSalesMap = new Map<number, { name: string; quantity: number; category: string }>();
         for (const sale of sales) {
@@ -504,5 +504,108 @@ export class AdvancedReportService {
             };
         });
         return margins.sort((a, b) => b.marginPercentage - a.marginPercentage);
+    }
+
+    async getFreeStats(startDate: Date, endDate: Date): Promise<FreeStatsDto> {
+        const start = CubaDateHelper.getStartOfDay(startDate);
+        const end = CubaDateHelper.getEndOfDay(endDate);
+
+        // Obtener todas las ventas Free con status charged
+        const freeSales = await this.saleRepository.find({
+            where: {
+                paymentMethod: 'Free',
+                status: 'charged',
+                createdAt: Between(start, end),
+            },
+            relations: ['items', 'items.product', 'user'],
+        });
+
+        const totalFreeSales = freeSales.length;
+        let totalFreeCost = 0;
+        const productMap = new Map<number, { name: string; quantity: number; cost: number }>();
+        const userMap = new Map<number, { name: string; sales: number; cost: number }>();
+        const dateMap = new Map<string, { sales: number; cost: number }>();
+
+        for (const sale of freeSales) {
+            let saleCost = 0;
+            for (const item of sale.items) {
+                const quantity = Number(item.quantity) - (item.quantityRefunded || 0);
+                if (quantity <= 0) continue;
+                const cost = Number(item.product?.unitCost || 0) * quantity;
+                saleCost += cost;
+                totalFreeCost += cost;
+
+                // Productos
+                const prod = productMap.get(item.productId);
+                if (prod) {
+                    prod.quantity += quantity;
+                    prod.cost += cost;
+                } else {
+                    productMap.set(item.productId, {
+                        name: item.product.name,
+                        quantity,
+                        cost,
+                    });
+                }
+            }
+
+            // Usuarios
+            if (sale.user) {
+                const user = userMap.get(sale.userId);
+                if (user) {
+                    user.sales += 1;
+                    user.cost += saleCost;
+                } else {
+                    userMap.set(sale.userId, {
+                        name: sale.user.username,
+                        sales: 1,
+                        cost: saleCost,
+                    });
+                }
+            }
+
+            // Fechas
+            const dateStr = CubaDateHelper.formatDate(sale.createdAt).split(' ')[0];
+            const dateEntry = dateMap.get(dateStr);
+            if (dateEntry) {
+                dateEntry.sales += 1;
+                dateEntry.cost += saleCost;
+            } else {
+                dateMap.set(dateStr, { sales: 1, cost: saleCost });
+            }
+        }
+
+        const topFreeProducts = Array.from(productMap.entries())
+            .map(([id, data]) => ({
+                productId: id,
+                productName: data.name,
+                quantitySold: data.quantity,
+                totalCost: parseFloat(data.cost.toFixed(2)),
+            }))
+            .sort((a, b) => b.quantitySold - a.quantitySold)
+            .slice(0, 10);
+
+        const freeByUser = Array.from(userMap.entries()).map(([id, data]) => ({
+            userId: id,
+            userName: data.name,
+            totalSales: data.sales,
+            totalCost: parseFloat(data.cost.toFixed(2)),
+        }));
+
+        const freeByDate = Array.from(dateMap.entries())
+            .map(([date, data]) => ({
+                date,
+                totalSales: data.sales,
+                totalCost: parseFloat(data.cost.toFixed(2)),
+            }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        return {
+            totalFreeSales,
+            totalFreeCost: parseFloat(totalFreeCost.toFixed(2)),
+            topFreeProducts,
+            freeByUser,
+            freeByDate,
+        };
     }
 }

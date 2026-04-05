@@ -13,12 +13,20 @@ import { UserRole } from "../../user/user.entity";
 @Roles(UserRole.SUPER_ADMIN)
 @Controller("advanced-reports")
 export class AdvancedReportController {
-  constructor(private readonly reportService: AdvancedReportService) {}
+  constructor(private readonly reportService: AdvancedReportService) { }
 
   @Get()
   @ApiOperation({ summary: "Obtener reporte avanzado con gráficos y estadísticas" })
   @ApiResponse({ status: 200, type: AdvancedReportResponseDto })
   async getAdvancedReport(@Query() dto: GetAdvancedReportDto): Promise<AdvancedReportResponseDto> {
     return this.reportService.getAdvancedReport(dto);
+  }
+
+  @Get('free-stats')
+  @ApiOperation({ summary: 'Estadísticas de ventas Free (Cuenta Casa)' })
+  async getFreeStats(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return this.reportService.getFreeStats(start, end);
   }
 }

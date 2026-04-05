@@ -124,6 +124,34 @@ export class ProductMarginDto {
   marginPercentage: number;
 }
 
+export class FreeStatsDto {
+  totalFreeSales: number;
+  totalFreeCost: number;
+  topFreeProducts: TopFreeProductDto[];
+  freeByUser: FreeByUserDto[];
+  freeByDate: FreeByDateDto[];
+}
+
+export class TopFreeProductDto {
+  productId: number;
+  productName: string;
+  quantitySold: number;
+  totalCost: number;
+}
+
+export class FreeByUserDto {
+  userId: number;
+  userName: string;
+  totalSales: number;
+  totalCost: number;
+}
+
+export class FreeByDateDto {
+  date: string;
+  totalSales: number;
+  totalCost: number;
+}
+
 export class AdvancedReportResponseDto {
   periodo: { startDate: string; endDate: string };
   dashboard: DashboardStatsDto;
